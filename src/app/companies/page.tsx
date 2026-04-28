@@ -1,0 +1,309 @@
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm }   from 'react-hook-form';
+import {
+  Plus, Building2, ChevronRight, Globe2,
+  Landmark, X, Loader2, Check,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import Header     from '@/components/layout/Header';
+import Sidebar    from '@/components/layout/Sidebar';
+import { Card, EmptyState, Spinner, ErrorMessage, Badge } from '@/components/ui';
+import { companiesApi, extractApiError } from '@/lib/api/client';
+import { useCompanies }     from '@/lib/hooks';
+import { useCompanyStore }  from '@/lib/store';
+import { cn, formatDate, SYSTEM_LABELS } from '@/lib/utils';
+import type { Company, AccountingSystem, Currency } from '@/types';
+
+const SYSTEM_OPTIONS: { value: AccountingSystem; label: string; desc: string }[] = [
+  { value: 'pcg_france', label: 'PCG France',  desc: 'Plan Comptable Général — entreprises françaises' },
+  { value: 'ohada',      label: 'OHADA',       desc: 'SYSCOHADA révisé — 17 pays membres' },
+];
+
+const CURRENCIES: { value: Currency; label: string; flag: string }[] = [
+  { value: 'EUR', label: 'Euro (€)',         flag: '🇪🇺' },
+  { value: 'XAF', label: 'Franc CFA BEAC',   flag: '🌍' },
+  { value: 'XOF', label: 'Franc CFA BCEAO',  flag: '🌍' },
+  { value: 'USD', label: 'Dollar ($)',        flag: '🇺🇸' },
+  { value: 'GBP', label: 'Livre sterling',   flag: '🇬🇧' },
+];
+
+interface CreateForm {
+  name:               string;
+  accounting_system:  AccountingSystem;
+  currency:           Currency;
+  legal_form?:        string;
+  country?:           string;
+  fiscal_year_start:  string;
+  fiscal_year_end:    string;
+}
+
+export default function CompaniesPage() {
+  const router                    = useRouter();
+  const { data, loading, error, refetch } = useCompanies();
+  const { setActiveCompany, activeCompany } = useCompanyStore();
+  const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving]       = useState(false);
+
+  const { register, handleSubmit, watch, setValue, formState: { errors }, reset } =
+    useForm<CreateForm>({
+      defaultValues: {
+        accounting_system: 'pcg_france',
+        currency:          'EUR',
+        country:           'France',
+        fiscal_year_start: `${new Date().getFullYear()}-01-01`,
+        fiscal_year_end:   `${new Date().getFullYear()}-12-31`,
+      },
+    });
+
+  const selectedSystem = watch('accounting_system');
+
+  const onCreate = async (data: CreateForm) => {
+    setSaving(true);
+    try {
+      const company = await companiesApi.create(data);
+      toast.success(`Entreprise "${company.name}" créée !`);
+      reset();
+      setShowModal(false);
+      refetch();
+      setActiveCompany(company);
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const allCompanies = [...(data?.owned ?? []), ...(data?.shared ?? [])];
+
+  return (
+    <div className="flex min-h-screen bg-surface-secondary">
+      <Sidebar />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Header
+          title="Entreprises"
+          subtitle="Gérez vos dossiers comptables"
+          actions={
+            <button onClick={() => setShowModal(true)} className="btn-orange">
+              <Plus className="w-4 h-4" /> Nouvelle entreprise
+            </button>
+          }
+        />
+
+        <div className="flex-1 p-6 animate-fade-in">
+          {error && <ErrorMessage message={error} />}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Spinner size="lg" />
+            </div>
+          ) : allCompanies.length === 0 ? (
+            <Card className="p-8">
+              <EmptyState
+                icon={Building2}
+                title="Aucune entreprise"
+                description="Créez votre premier dossier comptable pour commencer la saisie."
+                action={
+                  <button onClick={() => setShowModal(true)} className="btn-orange">
+                    <Plus className="w-4 h-4" /> Créer une entreprise
+                  </button>
+                }
+              />
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {allCompanies.map((company) => (
+                <CompanyCard
+                  key={company.id}
+                  company={company}
+                  isActive={activeCompany?.id === company.id}
+                  onSelect={() => {
+                    setActiveCompany(company);
+                    router.push('/dashboard');
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Modal création ────────────────────────────── */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50
+                        flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh]
+                          overflow-y-auto animate-slide-up">
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4
+                            flex items-center justify-between rounded-t-2xl z-10">
+              <div>
+                <h2 className="font-bold text-brand-navy">Nouvelle entreprise</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Créer un dossier comptable</p>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg
+                           hover:bg-slate-100 text-slate-400 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit(onCreate)} className="p-6 space-y-5">
+
+              {/* Nom */}
+              <div>
+                <label className="label">Nom de l'entreprise *</label>
+                <input
+                  {...register('name', { required: 'Requis' })}
+                  placeholder="Vision R+ Consulting"
+                  className="input"
+                />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
+              </div>
+
+              {/* Système comptable */}
+              <div>
+                <label className="label">Système comptable *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {SYSTEM_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setValue('accounting_system', opt.value)}
+                      className={cn(
+                        'p-3 rounded-xl border text-left transition-all duration-150',
+                        selectedSystem === opt.value
+                          ? 'border-brand-orange bg-brand-orange/5 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-300',
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold text-brand-navy">{opt.label}</span>
+                        {selectedSystem === opt.value && (
+                          <div className="w-5 h-5 bg-brand-orange rounded-full flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 leading-tight">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Devise */}
+                <div>
+                  <label className="label">Devise</label>
+                  <select {...register('currency')} className="input">
+                    {CURRENCIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.flag} {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Forme juridique */}
+                <div>
+                  <label className="label">Forme juridique</label>
+                  <input
+                    {...register('legal_form')}
+                    placeholder="SAS, SARL, Auto-entrepreneur…"
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              {/* Pays */}
+              <div>
+                <label className="label">Pays</label>
+                <input {...register('country')} placeholder="France" className="input" />
+              </div>
+
+              {/* Exercice fiscal */}
+              <div>
+                <label className="label">Exercice fiscal</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1">Début</p>
+                    <input {...register('fiscal_year_start')} type="date" className="input" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-1">Fin</p>
+                    <input {...register('fiscal_year_end')} type="date" className="input" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Boutons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="btn-secondary flex-1 justify-center"
+                >
+                  Annuler
+                </button>
+                <button type="submit" disabled={saving} className="btn-orange flex-1 justify-center">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  {saving ? 'Création…' : 'Créer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CompanyCard({
+  company, isActive, onSelect,
+}: { company: Company; isActive: boolean; onSelect: () => void }) {
+  return (
+    <div
+      onClick={onSelect}
+      className={cn(
+        'card card-hover p-5 cursor-pointer transition-all duration-200',
+        isActive && 'ring-2 ring-brand-orange/40 border-brand-orange/30',
+      )}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className={cn(
+          'w-10 h-10 rounded-xl flex items-center justify-center',
+          isActive ? 'bg-brand-orange/15' : 'bg-surface-tertiary',
+        )}>
+          <Landmark className={cn('w-5 h-5', isActive ? 'text-brand-orange' : 'text-slate-400')} />
+        </div>
+        <div className="flex items-center gap-2">
+          {isActive && (
+            <Badge variant="orange" className="text-[10px]">Active</Badge>
+          )}
+          <ChevronRight className="w-4 h-4 text-slate-300" />
+        </div>
+      </div>
+
+      <h3 className="font-bold text-brand-navy text-sm mb-0.5 line-clamp-1">{company.name}</h3>
+      {company.legal_form && (
+        <p className="text-xs text-slate-400 mb-3">{company.legal_form}</p>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap mt-2">
+        <Badge variant={company.accounting_system === 'ohada' ? 'blue' : 'default'}>
+          {SYSTEM_LABELS[company.accounting_system]}
+        </Badge>
+        <span className="text-xs text-slate-400 flex items-center gap-1">
+          <Globe2 className="w-3 h-3" />{company.country}
+        </span>
+        <span className="text-xs text-slate-400 font-mono">{company.currency}</span>
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-slate-50 text-xs text-slate-400">
+        Créé le {formatDate(company.created_at, true)}
+      </div>
+    </div>
+  );
+}

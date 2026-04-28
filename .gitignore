@@ -1,0 +1,28 @@
+# Dépendances
+node_modules/
+
+# Build Next.js
+.next/
+out/
+
+# Environnement — NE JAMAIS COMMITTER
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vercel
+.vercel/
