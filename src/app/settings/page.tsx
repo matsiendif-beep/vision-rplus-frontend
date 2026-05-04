@@ -4,7 +4,6 @@ import { useForm }  from 'react-hook-form';
 import { Save, Loader2, Globe2, Bell, Shield, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import { Card, CardHeader, Badge } from '@/components/ui';
 import { companiesApi, extractApiError } from '@/lib/api/client';
 import { useCompanyStore, useAuthStore }  from '@/lib/store';
@@ -32,9 +31,7 @@ export default function SettingsPage() {
   const { user }                            = useAuthStore();
 
   return (
-    <div className="flex min-h-screen bg-surface-secondary">
-      <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+    <div className="flex-1 min-w-0 flex flex-col">
         <Header title="Paramètres" subtitle="Configuration de Vision R+" />
         <div className="flex-1 p-6">
           <div className="flex gap-6 max-w-5xl">
@@ -70,7 +67,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
 

@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header     from '@/components/layout/Header';
-import Sidebar    from '@/components/layout/Sidebar';
 import { Card, EmptyState, Spinner, ErrorMessage, Badge } from '@/components/ui';
 import { companiesApi, extractApiError } from '@/lib/api/client';
 import { useCompanies }     from '@/lib/hooks';
@@ -78,9 +77,8 @@ export default function CompaniesPage() {
   const allCompanies = [...(data?.owned ?? []), ...(data?.shared ?? [])];
 
   return (
-    <div className="flex min-h-screen bg-surface-secondary">
-      <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+    <>
+    <div className="flex-1 min-w-0 flex flex-col">
         <Header
           title="Entreprises"
           subtitle="Gérez vos dossiers comptables"
@@ -256,7 +254,7 @@ export default function CompaniesPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

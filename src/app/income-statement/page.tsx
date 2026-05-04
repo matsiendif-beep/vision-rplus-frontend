@@ -1,7 +1,6 @@
 'use client';
 import { TrendingUp, TrendingDown, Minus, Download } from 'lucide-react';
 import Header  from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import { Card, CardHeader, Spinner, ErrorMessage, Badge } from '@/components/ui';
 import { useIncomeStatement } from '@/lib/hooks';
 import { useCompanyStore }    from '@/lib/store';
@@ -13,9 +12,7 @@ export default function IncomeStatementPage() {
   const { data, loading, error }            = useIncomeStatement();
 
   return (
-    <div className="flex min-h-screen bg-surface-secondary">
-      <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+    <div className="flex-1 min-w-0 flex flex-col">
         <Header
           title="Compte de résultat"
           subtitle={activeFiscalYear?.label ?? '—'}
@@ -157,7 +154,6 @@ export default function IncomeStatementPage() {
           )}
         </div>
       </div>
-    </div>
   );
 }
 

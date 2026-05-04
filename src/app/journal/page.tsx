@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import {
   Card, Badge, EmptyState, TableSkeleton, ErrorMessage,
 } from '@/components/ui';
@@ -37,9 +36,8 @@ export default function JournalPage() {
   });
 
   return (
-    <div className="flex min-h-screen bg-surface-secondary">
-      <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+    <>
+    <div className="flex-1 min-w-0 flex flex-col">
         <Header
           title="Journal comptable"
           subtitle={activeFiscalYear?.label ?? 'Sélectionnez un exercice'}
@@ -182,7 +180,7 @@ export default function JournalPage() {
           onSuccess={() => { setShowModal(false); refetch(); }}
         />
       )}
-    </div>
+    </>
   );
 }
 

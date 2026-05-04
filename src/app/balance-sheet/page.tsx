@@ -1,7 +1,6 @@
 'use client';
 import { Scale, CheckCircle2, AlertTriangle, Download } from 'lucide-react';
 import Header  from '@/components/layout/Header';
-import Sidebar from '@/components/layout/Sidebar';
 import { Card, CardHeader, Spinner, ErrorMessage } from '@/components/ui';
 import { useBalanceSheet }  from '@/lib/hooks';
 import { useCompanyStore }  from '@/lib/store';
@@ -13,9 +12,7 @@ export default function BalanceSheetPage() {
   const { data, loading, error }            = useBalanceSheet();
 
   return (
-    <div className="flex min-h-screen bg-surface-secondary">
-      <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
+    <div className="flex-1 min-w-0 flex flex-col">
         <Header
           title="Bilan comptable"
           subtitle={activeFiscalYear?.label ?? '—'}
@@ -203,7 +200,6 @@ export default function BalanceSheetPage() {
           )}
         </div>
       </div>
-    </div>
   );
 }
 
