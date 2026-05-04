@@ -7,13 +7,13 @@ const nextConfig = {
     remotePatterns: [],
   },
 
-  // Proxy local dev : redirige /api/v1/* vers le backend NestJS (port 3000)
+  // Proxy : redirige /api/v1/* vers le backend (Railway en prod, localhost en dev local)
   async rewrites() {
-    if (process.env.NEXT_PUBLIC_API_URL) return [];
+    const backend = process.env.NEXT_PUBLIC_API_URL || 'https://vision-rplus-backend-production.up.railway.app';
     return [
       {
         source: '/api/v1/:path*',
-        destination: 'http://localhost:3000/api/v1/:path*',
+        destination: `${backend}/api/v1/:path*`,
       },
     ];
   },
