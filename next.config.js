@@ -7,6 +7,17 @@ const nextConfig = {
     remotePatterns: [],
   },
 
+  // Proxy local dev : redirige /api/v1/* vers le backend NestJS (port 3000)
+  async rewrites() {
+    if (process.env.NEXT_PUBLIC_API_URL) return [];
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: 'http://localhost:3000/api/v1/:path*',
+      },
+    ];
+  },
+
   // En-têtes de sécurité
   async headers() {
     return [
