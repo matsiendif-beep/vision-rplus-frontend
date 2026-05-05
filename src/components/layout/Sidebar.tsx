@@ -6,18 +6,28 @@ import {
   LayoutDashboard, Building2, BookOpen,
   TrendingUp, Scale, Settings, LogOut,
   ChevronDown, Plus, Landmark,
+  BarChart3, Package, FileText, Banknote, Receipt,
 } from 'lucide-react';
 import { useAuthStore, useCompanyStore } from '@/lib/store';
 import { cn, SYSTEM_LABELS } from '@/lib/utils';
 import type { Company } from '@/types';
 
 const NAV_ITEMS = [
-  { href: '/dashboard',        label: 'Dashboard',         icon: LayoutDashboard },
-  { href: '/companies',        label: 'Entreprises',        icon: Building2 },
-  { href: '/journal',          label: 'Journal',            icon: BookOpen },
-  { href: '/income-statement', label: 'Compte de résultat', icon: TrendingUp },
-  { href: '/balance-sheet',    label: 'Bilan',              icon: Scale },
-  { href: '/settings',         label: 'Paramètres',         icon: Settings },
+  // ── Principal
+  { href: '/dashboard',        label: 'Dashboard',           icon: LayoutDashboard, group: 'principal' },
+  { href: '/companies',        label: 'Entreprises',          icon: Building2,       group: 'principal' },
+  // ── Comptabilité
+  { href: '/journal',          label: 'Journal',              icon: BookOpen,        group: 'compta' },
+  { href: '/income-statement', label: 'Compte de résultat',   icon: TrendingUp,      group: 'compta' },
+  { href: '/balance-sheet',    label: 'Bilan',                icon: Scale,           group: 'compta' },
+  { href: '/fixed-assets',     label: 'Immobilisations',      icon: Package,         group: 'compta' },
+  // ── Analyse
+  { href: '/analytics',        label: 'Analyse & KPIs',       icon: BarChart3,       group: 'analyse' },
+  { href: '/tax',              label: 'Fiscalité & DSF',       icon: Receipt,         group: 'analyse' },
+  { href: '/bank',             label: 'Banque',               icon: Banknote,        group: 'analyse' },
+  // ── Documents & Paramètres
+  { href: '/documents',        label: 'Documents',            icon: FileText,        group: 'outils' },
+  { href: '/settings',         label: 'Paramètres',           icon: Settings,        group: 'outils' },
 ];
 
 export default function Sidebar() {

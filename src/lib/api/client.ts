@@ -155,6 +155,126 @@ export const financialApi = {
        .then((r) => r.data),
 };
 
+// ─────────────────────────────────────────────────────────────
+//  IMMOBILISATIONS & AMORTISSEMENTS
+// ─────────────────────────────────────────────────────────────
+export const fixedAssetsApi = {
+  list:  (companyId: string) =>
+    api.get(`/companies/${companyId}/fixed-assets`).then(r => r.data),
+
+  get: (companyId: string, id: string) =>
+    api.get(`/companies/${companyId}/fixed-assets/${id}`).then(r => r.data),
+
+  create: (companyId: string, data: any) =>
+    api.post(`/companies/${companyId}/fixed-assets`, data).then(r => r.data),
+
+  update: (companyId: string, id: string, data: any) =>
+    api.patch(`/companies/${companyId}/fixed-assets/${id}`, data).then(r => r.data),
+
+  dispose: (companyId: string, id: string, data: any) =>
+    api.post(`/companies/${companyId}/fixed-assets/${id}/dispose`, data).then(r => r.data),
+
+  depreciationTable: (companyId: string) =>
+    api.get(`/companies/${companyId}/fixed-assets/depreciation-table`).then(r => r.data),
+
+  postDepreciations: (companyId: string, fiscalYearId: string) =>
+    api.post(`/companies/${companyId}/fixed-assets/post-depreciations/${fiscalYearId}`)
+       .then(r => r.data),
+};
+
+// ─────────────────────────────────────────────────────────────
+//  DOCUMENTS
+// ─────────────────────────────────────────────────────────────
+export const documentsApi = {
+  list: (companyId: string, params?: Record<string, string>) =>
+    api.get(`/companies/${companyId}/documents`, { params }).then(r => r.data),
+
+  get: (companyId: string, id: string) =>
+    api.get(`/companies/${companyId}/documents/${id}`).then(r => r.data),
+
+  create: (companyId: string, data: any) =>
+    api.post(`/companies/${companyId}/documents`, data).then(r => r.data),
+
+  link: (companyId: string, id: string, data: { journal_entry_id?: string }) =>
+    api.patch(`/companies/${companyId}/documents/${id}/link`, data).then(r => r.data),
+
+  delete: (companyId: string, id: string) =>
+    api.delete(`/companies/${companyId}/documents/${id}`).then(r => r.data),
+
+  stats: (companyId: string) =>
+    api.get(`/companies/${companyId}/documents/stats`).then(r => r.data),
+};
+
+// ─────────────────────────────────────────────────────────────
+//  FISCALITÉ & DSF
+// ─────────────────────────────────────────────────────────────
+export const taxApi = {
+  list: (companyId: string) =>
+    api.get(`/companies/${companyId}/tax-declarations`).then(r => r.data),
+
+  create: (companyId: string, data: any) =>
+    api.post(`/companies/${companyId}/tax-declarations`, data).then(r => r.data),
+
+  validate: (companyId: string, id: string) =>
+    api.patch(`/companies/${companyId}/tax-declarations/${id}/validate`).then(r => r.data),
+
+  submit: (companyId: string, id: string) =>
+    api.patch(`/companies/${companyId}/tax-declarations/${id}/submit`).then(r => r.data),
+
+  generateDsf: (companyId: string, fiscalYearId: string) =>
+    api.post(`/companies/${companyId}/dsf/generate`, { fiscal_year_id: fiscalYearId })
+       .then(r => r.data),
+};
+
+// ─────────────────────────────────────────────────────────────
+//  ANALYTICS & KPIs
+// ─────────────────────────────────────────────────────────────
+export const analyticsApi = {
+  dashboard: (companyId: string, fiscalYearId: string) =>
+    api.get(`/companies/${companyId}/analytics/dashboard`, { params: { fiscal_year_id: fiscalYearId } })
+       .then(r => r.data),
+
+  kpis: (companyId: string, fiscalYearId: string) =>
+    api.get(`/companies/${companyId}/analytics/kpis`, { params: { fiscal_year_id: fiscalYearId } })
+       .then(r => r.data),
+
+  balance: (companyId: string, fiscalYearId: string) =>
+    api.get(`/companies/${companyId}/analytics/balance`, { params: { fiscal_year_id: fiscalYearId } })
+       .then(r => r.data),
+
+  grandLivre: (companyId: string, fiscalYearId: string, accountCode?: string) =>
+    api.get(`/companies/${companyId}/analytics/grand-livre`, {
+      params: { fiscal_year_id: fiscalYearId, ...(accountCode && { account_code: accountCode }) },
+    }).then(r => r.data),
+};
+
+// ─────────────────────────────────────────────────────────────
+//  BANQUE
+// ─────────────────────────────────────────────────────────────
+export const bankApi = {
+  getAccounts: (companyId: string) =>
+    api.get(`/companies/${companyId}/bank/accounts`).then(r => r.data),
+
+  createAccount: (companyId: string, data: any) =>
+    api.post(`/companies/${companyId}/bank/accounts`, data).then(r => r.data),
+
+  getTransactions: (companyId: string, accountId: string) =>
+    api.get(`/companies/${companyId}/bank/accounts/${accountId}/transactions`).then(r => r.data),
+
+  importTransactions: (companyId: string, accountId: string, transactions: any[]) =>
+    api.post(`/companies/${companyId}/bank/accounts/${accountId}/import`, { transactions })
+       .then(r => r.data),
+
+  getUnreconciled: (companyId: string, accountId: string) =>
+    api.get(`/companies/${companyId}/bank/accounts/${accountId}/unreconciled`).then(r => r.data),
+
+  reconcile: (companyId: string, bankTransactionId: string, journalLineId: string) =>
+    api.post(`/companies/${companyId}/bank/reconcile`, {
+      bank_transaction_id: bankTransactionId,
+      journal_line_id:     journalLineId,
+    }).then(r => r.data),
+};
+
 // ── Helpers ───────────────────────────────────────────────────
 export const extractApiError = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
