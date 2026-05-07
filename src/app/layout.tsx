@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 export const metadata: Metadata = {
   title:       'Vision R+ | Gestion financière & comptable',
   description: 'Plateforme SaaS de comptabilité OHADA & PCG France',
-  icons:       { icon: '/favicon.ico' },
+  formatDetection: { telephone: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,6 +20,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Vision R+" />
+        <meta name="theme-color" content="#f97316" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="bg-surface-secondary text-brand-navy antialiased">
         {children}
