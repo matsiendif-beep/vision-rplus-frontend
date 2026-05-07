@@ -16,7 +16,7 @@ export default function DashboardPage() {
   const { isAuthenticated }                  = useAuthStore();
   const { activeCompany, activeFiscalYear }  = useCompanyStore();
   const { data: dashboard, loading: dashLoading, error: dashError, refetch } = useDashboard();
-  const { data: journalData, loading: journalLoading } = useJournal({ limit: 6, status: 'validee' });
+  const { data: journalData, loading: journalLoading } = useJournal({ status: 'validee' });
 
   // Rediriger si non authentifié
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                     <div className="flex justify-between text-xs mb-1">
                       <span className="text-emerald-600 font-semibold">Produits</span>
                       <span className="font-mono text-emerald-600">
-                        {formatAmount(dashboard.total_produits, activeCompany.currency)}
+                        {formatAmount(Math.abs(dashboard.total_produits), activeCompany.currency)}
                       </span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -158,8 +158,8 @@ export default function DashboardPage() {
                       <div
                         className="h-full bg-red-400 rounded-full transition-all duration-700"
                         style={{
-                          width: dashboard.total_produits > 0
-                            ? `${Math.min(100, (dashboard.total_charges / dashboard.total_produits) * 100).toFixed(1)}%`
+                          width: Math.abs(dashboard.total_produits) > 0
+                            ? `${Math.min(100, (dashboard.total_charges / Math.abs(dashboard.total_produits)) * 100).toFixed(1)}%`
                             : '0%',
                         }}
                       />
@@ -221,7 +221,7 @@ export default function DashboardPage() {
 
         {/* ── Dernières écritures ───────────────────────── */}
         <RecentEntries
-          entries={journalData?.data ?? []}
+          entries={(journalData?.data ?? []).slice(0, 6)}
           currency={activeCompany.currency}
           loading={journalLoading}
         />

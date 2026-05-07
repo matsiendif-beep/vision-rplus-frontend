@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
                   value={formatAmount(data.kpis.seuil_rentabilite, activeCompany?.currency)}
                   subtitle="CA minimum à atteindre"
                   icon={Target}
-                  positive={data.synthese.total_produits >= data.kpis.seuil_rentabilite}
+                  positive={Math.abs(data.synthese.total_produits) >= data.kpis.seuil_rentabilite}
                 />
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function AnalyticsPage() {
               <Card className="p-5">
                 <p className="text-xs text-slate-400 mb-1">Produits</p>
                 <p className="font-bold text-emerald-600 font-mono text-lg">
-                  {formatAmount(data.synthese.total_produits, activeCompany?.currency)}
+                  {formatAmount(Math.abs(data.synthese.total_produits), activeCompany?.currency)}
                 </p>
               </Card>
               <Card className="p-5">

@@ -30,7 +30,7 @@ export default function JournalPage() {
   const [showModal, setShowModal] = useState(false);
 
   const { data, loading, error, refetch } = useJournal({
-    page, limit: 20,
+    page,
     ...(search     && { search }),
     ...(filterType && { journal_type: filterType }),
   });

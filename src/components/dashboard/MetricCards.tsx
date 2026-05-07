@@ -37,7 +37,7 @@ export default function MetricCards({ data, currency = 'EUR', loading }: MetricC
     },
     {
       label:    'Produits (CA)',
-      value:    formatAmount(data.total_produits, currency),
+      value:    formatAmount(Math.abs(data.total_produits), currency),
       icon:     ArrowUpRight,
       iconBg:   'bg-emerald-50',
       iconColor: 'text-emerald-600',
