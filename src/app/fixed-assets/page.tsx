@@ -182,11 +182,13 @@ function CreateAssetModal({ companyId, onClose, onSuccess }: any) {
   const [saving, setSaving] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
-      acquisition_date:   new Date().toISOString().slice(0, 10),
-      useful_life_years:  5,
+      name:                '',
+      location:            '',
+      acquisition_date:    new Date().toISOString().slice(0, 10),
+      useful_life_years:   5,
       depreciation_method: 'lineaire',
-      gross_value:        '',
-      residual_value:     0,
+      gross_value:         '',
+      residual_value:      0,
     },
   });
 
