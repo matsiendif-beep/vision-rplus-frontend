@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { Bell, ChevronDown, Calendar } from 'lucide-react';
+import { Bell, ChevronDown, Calendar, Menu } from 'lucide-react';
 import { useCompanyStore } from '@/lib/store';
 import { cn, formatDate }  from '@/lib/utils';
+import { useSidebar } from './SidebarContext';
 import type { FiscalYear } from '@/types';
 
 interface HeaderProps {
@@ -15,14 +16,26 @@ export default function Header({ title, subtitle, actions }: HeaderProps) {
   const { activeFiscalYear, activeCompany, setActiveFiscalYear } = useCompanyStore();
   const [showFYPicker, setShowFYPicker] = useState(false);
   const fiscalYears = activeCompany?.fiscal_years ?? [];
+  const { toggle } = useSidebar();
 
   return (
-    <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between
+    <header className="bg-white border-b border-slate-100 px-4 py-4 flex items-center justify-between
                        sticky top-0 z-30 shadow-sm">
       {/* ── Titre de la page ──────────────────────────────── */}
-      <div>
-        <h1 className="page-title">{title}</h1>
-        {subtitle && <p className="page-subtitle">{subtitle}</p>}
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={toggle}
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl
+                     bg-surface-secondary hover:bg-slate-100 transition-colors flex-shrink-0"
+          aria-label="Menu"
+        >
+          <Menu className="w-5 h-5 text-brand-navy" />
+        </button>
+        <div className="min-w-0">
+          <h1 className="page-title">{title}</h1>
+          {subtitle && <p className="page-subtitle truncate">{subtitle}</p>}
+        </div>
       </div>
 
       {/* ── Actions droite ───────────────────────────────── */}
