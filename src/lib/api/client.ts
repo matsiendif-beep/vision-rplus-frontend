@@ -139,19 +139,19 @@ export const journalApi = {
 };
 
 // ─────────────────────────────────────────────────────────────
-//  ÉTATS FINANCIERS
+//  ÉTATS FINANCIERS (redirige vers analytics)
 // ─────────────────────────────────────────────────────────────
 export const financialApi = {
   dashboard: (companyId: string, fiscalYearId: string) =>
-    api.get<Dashboard>(`/companies/${companyId}/fiscal-years/${fiscalYearId}/dashboard`)
+    api.get<Dashboard>(`/companies/${companyId}/analytics/dashboard`, { params: { fiscal_year_id: fiscalYearId } })
        .then((r) => r.data),
 
   incomeStatement: (companyId: string, fiscalYearId: string) =>
-    api.get<IncomeStatement>(`/companies/${companyId}/fiscal-years/${fiscalYearId}/income-statement`)
+    api.get<IncomeStatement>(`/companies/${companyId}/analytics/compte-resultat`, { params: { fiscal_year_id: fiscalYearId } })
        .then((r) => r.data),
 
   balanceSheet: (companyId: string, fiscalYearId: string) =>
-    api.get<BalanceSheet>(`/companies/${companyId}/fiscal-years/${fiscalYearId}/balance-sheet`)
+    api.get<BalanceSheet>(`/companies/${companyId}/analytics/bilan`, { params: { fiscal_year_id: fiscalYearId } })
        .then((r) => r.data),
 };
 
@@ -246,6 +246,14 @@ export const analyticsApi = {
     api.get(`/companies/${companyId}/analytics/grand-livre`, {
       params: { fiscal_year_id: fiscalYearId, ...(accountCode && { account_code: accountCode }) },
     }).then(r => r.data),
+
+  bilan: (companyId: string, fiscalYearId: string) =>
+    api.get(`/companies/${companyId}/analytics/bilan`, { params: { fiscal_year_id: fiscalYearId } })
+       .then(r => r.data),
+
+  compteResultat: (companyId: string, fiscalYearId: string) =>
+    api.get(`/companies/${companyId}/analytics/compte-resultat`, { params: { fiscal_year_id: fiscalYearId } })
+       .then(r => r.data),
 };
 
 // ─────────────────────────────────────────────────────────────
