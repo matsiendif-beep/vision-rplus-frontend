@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import {
   Plus, Search, Filter, CheckCircle2,
   RotateCcw, ChevronLeft, ChevronRight,
-  Loader2, Trash2, X, AlertCircle, Upload, Download,
+  Loader2, Trash2, X, AlertCircle, Upload, Download, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
@@ -27,9 +27,10 @@ export default function JournalPage() {
   const [page, setPage]         = useState(1);
   const [search, setSearch]     = useState('');
   const [filterType, setFilter] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [importing, setImporting]   = useState(false);
-  const [exporting, setExporting]   = useState(false);
+  const [showModal, setShowModal]       = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
+  const [importing, setImporting]       = useState(false);
+  const [exporting, setExporting]       = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportCsv = async () => {
@@ -210,6 +211,7 @@ export default function JournalPage() {
                               refetch();
                             } catch (e) { toast.error(extractApiError(e)); }
                           }}
+                          onEdit={() => setEditingEntry(entry)}
                           onDelete={async () => {
                             if (!confirm('Supprimer cette écriture en brouillon ?')) return;
                             try {
@@ -252,6 +254,7 @@ export default function JournalPage() {
         </div>
       </div>
 
+      {/* Modal création */}
       {showModal && activeCompany && activeFiscalYear && (
         <EntryModal
           companyId={activeCompany.id}
@@ -261,17 +264,30 @@ export default function JournalPage() {
           onSuccess={() => { setShowModal(false); refetch(); }}
         />
       )}
+
+      {/* Modal édition brouillon */}
+      {editingEntry && activeCompany && activeFiscalYear && (
+        <EntryModal
+          companyId={activeCompany.id}
+          fiscalYearId={activeFiscalYear.id}
+          currency={activeCompany.currency}
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSuccess={() => { setEditingEntry(null); refetch(); }}
+        />
+      )}
     </>
   );
 }
 
 // ── Ligne du tableau ──────────────────────────────────────────
 function EntryRow({
-  entry, currency, onValidate, onDelete,
+  entry, currency, onValidate, onEdit, onDelete,
 }: {
   entry:       any;
   currency:    string;
   onValidate:  () => void;
+  onEdit:      () => void;
   onDelete:    () => void;
 }) {
   return (
@@ -328,6 +344,14 @@ function EntryRow({
               <CheckCircle2 className="w-4 h-4" />
             </button>
             <button
+              onClick={onEdit}
+              title="Modifier l'écriture"
+              className="inline-flex items-center text-xs text-slate-400
+                         hover:text-blue-600 transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
               onClick={onDelete}
               title="Supprimer l'écriture"
               className="inline-flex items-center text-xs text-slate-300
@@ -342,35 +366,56 @@ function EntryRow({
   );
 }
 
-// ── Modal saisie d'écriture ───────────────────────────────────
+// ── Modal saisie / édition d'écriture ────────────────────────
 function EntryModal({
-  companyId, fiscalYearId, currency, onClose, onSuccess,
+  companyId, fiscalYearId, currency, entry, onClose, onSuccess,
 }: {
   companyId:    string;
   fiscalYearId: string;
   currency:     string;
+  entry?:       any;         // si défini → mode édition
   onClose:      () => void;
   onSuccess:    () => void;
 }) {
+  const isEdit = !!entry;
   const [saving, setSaving]     = useState(false);
-  // FIX 1: Séparation affichage (code-label) et valeur réelle (UUID)
   const [accountSuggestions, setAccountSuggestions] = useState<Account[]>([]);
   const [activeLineIndex, setActiveLineIndex]        = useState<number | null>(null);
-  // Tableau des libellés affichés dans les champs compte (code - label)
-  const [accountDisplays, setAccountDisplays]        = useState<string[]>(['', '']);
+
+  // Pré-remplir les affichages de comptes si mode édition
+  const initialDisplays = isEdit
+    ? (entry.lines ?? []).map((l: any) =>
+        l.account ? `${l.account.code} — ${l.account.label}` : ''
+      )
+    : ['', ''];
+
+  const [accountDisplays, setAccountDisplays] = useState<string[]>(initialDisplays);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Valeurs par défaut : création ou édition
+  const defaultLines = isEdit
+    ? (entry.lines ?? []).map((l: any) => ({
+        account_id: l.account_id,
+        libelle:    l.libelle ?? '',
+        debit:      parseFloat(l.debit)  || (undefined as any),
+        credit:     parseFloat(l.credit) || (undefined as any),
+      }))
+    : [
+        { account_id: '', libelle: '', debit: undefined as any, credit: undefined as any },
+        { account_id: '', libelle: '', debit: undefined as any, credit: undefined as any },
+      ];
 
   const { register, control, handleSubmit, watch, setValue, formState: { errors } } =
     useForm<CreateEntryForm>({
       defaultValues: {
         fiscal_year_id: fiscalYearId,
-        journal_type:   'od',
-        entry_date:     new Date().toISOString().slice(0, 10),
-        lines: [
-          // FIX 3: Champs vides par défaut (pas de zéro)
-          { account_id: '', libelle: '', debit: undefined as any, credit: undefined as any },
-          { account_id: '', libelle: '', debit: undefined as any, credit: undefined as any },
-        ],
+        journal_type:   isEdit ? entry.journal_type : 'od',
+        entry_date:     isEdit
+          ? new Date(entry.entry_date).toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10),
+        reference:      isEdit ? (entry.reference ?? '') : '',
+        libelle:        isEdit ? entry.libelle : '',
+        lines:          defaultLines,
       },
     });
 
@@ -381,13 +426,9 @@ function EntryModal({
   const totalCredit = lines.reduce((s, l) => s + (parseFloat(String(l.credit)) || 0), 0);
   const isBalanced  = totalDebit > 0 && Math.abs(totalDebit - totalCredit) < 0.01;
 
-  // FIX 1: Recherche compte avec debounce
   const searchAccounts = useCallback(async (q: string, lineIndex: number) => {
     setActiveLineIndex(lineIndex);
-    if (q.length < 1) {
-      setAccountSuggestions([]);
-      return;
-    }
+    if (q.length < 1) { setAccountSuggestions([]); return; }
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
@@ -397,7 +438,6 @@ function EntryModal({
     }, 200);
   }, [companyId]);
 
-  // FIX 1: Sélection d'un compte → stocker UUID + afficher code-label
   const selectAccount = (acc: Account, lineIndex: number) => {
     setValue(`lines.${lineIndex}.account_id`, acc.id);
     const newDisplays = [...accountDisplays];
@@ -411,15 +451,21 @@ function EntryModal({
   const onSubmit = async (data: CreateEntryForm) => {
     setSaving(true);
     try {
-      await journalApi.createEntry(companyId, {
+      const payload = {
         ...data,
         lines: data.lines.map((l) => ({
           ...l,
           debit:  parseFloat(String(l.debit))  || 0,
           credit: parseFloat(String(l.credit)) || 0,
         })),
-      });
-      toast.success('Écriture enregistrée en brouillon');
+      };
+      if (isEdit) {
+        await journalApi.updateEntry(companyId, entry.id, payload);
+        toast.success('Écriture mise à jour');
+      } else {
+        await journalApi.createEntry(companyId, payload);
+        toast.success('Écriture enregistrée en brouillon');
+      }
       onSuccess();
     } catch (err) {
       toast.error(extractApiError(err));
@@ -442,14 +488,15 @@ function EntryModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-         onClick={(e) => { if (e.target === e.currentTarget) { setAccountSuggestions([]); } }}>
+         onClick={(e) => { if (e.target === e.currentTarget) setAccountSuggestions([]); }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto animate-slide-up">
 
-        {/* Header modal */}
         <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4
                         flex items-center justify-between rounded-t-2xl z-10">
           <div>
-            <h2 className="font-bold text-brand-navy">Saisir une écriture</h2>
+            <h2 className="font-bold text-brand-navy">
+              {isEdit ? 'Modifier le brouillon' : 'Saisir une écriture'}
+            </h2>
             <p className="text-xs text-slate-400">Partie double · Débit = Crédit</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center
@@ -460,7 +507,6 @@ function EntryModal({
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
 
-          {/* Ligne 1 : journal + date + référence */}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="label">Journal *</label>
@@ -480,7 +526,6 @@ function EntryModal({
             </div>
           </div>
 
-          {/* Libellé */}
           <div>
             <label className="label">Libellé *</label>
             <input
@@ -491,7 +536,6 @@ function EntryModal({
             {errors.libelle && <p className="text-red-500 text-xs mt-1">{errors.libelle.message}</p>}
           </div>
 
-          {/* Lignes d'écriture */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="label mb-0">Lignes d'écriture *</label>
@@ -506,14 +550,12 @@ function EntryModal({
             </div>
 
             <div className="border border-slate-200 rounded-xl overflow-visible">
-              {/* En-têtes colonnes */}
               <div className="grid gap-0 bg-surface-secondary px-3 py-2
                               text-xs font-semibold text-slate-500 uppercase tracking-wide
                               border-b border-slate-200"
                    style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr auto' }}>
                 <div>Compte</div>
                 <div>Libellé ligne</div>
-                {/* FIX 2: Débit et Crédit côte à côte, même taille */}
                 <div className="text-right text-blue-600">Débit</div>
                 <div className="text-right text-emerald-600">Crédit</div>
                 <div className="w-6"></div>
@@ -525,7 +567,6 @@ function EntryModal({
                              border-b border-slate-100 last:border-0 hover:bg-surface-secondary/30"
                   style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr auto' }}>
 
-                  {/* FIX 1: Compte — affiche code-label après sélection */}
                   <div className="relative">
                     <input
                       value={accountDisplays[index] || ''}
@@ -535,7 +576,6 @@ function EntryModal({
                         accountDisplays[index] && "font-mono text-brand-navy font-semibold"
                       )}
                       onChange={(e) => {
-                        // Reset UUID si l'utilisateur retape
                         setValue(`lines.${index}.account_id`, '');
                         const newDisplays = [...accountDisplays];
                         newDisplays[index] = e.target.value;
@@ -544,7 +584,6 @@ function EntryModal({
                       }}
                       onFocus={() => {
                         if (accountDisplays[index]) {
-                          // Effacer pour permettre une nouvelle recherche
                           const newDisplays = [...accountDisplays];
                           newDisplays[index] = '';
                           setAccountDisplays(newDisplays);
@@ -554,7 +593,6 @@ function EntryModal({
                       }}
                       autoComplete="off"
                     />
-                    {/* Dropdown suggestions */}
                     {activeLineIndex === index && accountSuggestions.length > 0 && (
                       <div className="absolute left-0 right-0 top-full mt-0.5 bg-white
                                       border border-slate-200 rounded-xl shadow-lg z-50
@@ -580,7 +618,6 @@ function EntryModal({
                         ))}
                       </div>
                     )}
-                    {/* Indicateur compte sélectionné */}
                     {watch(`lines.${index}.account_id`) && (
                       <div className="absolute right-2 top-1/2 -translate-y-1/2">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -588,7 +625,6 @@ function EntryModal({
                     )}
                   </div>
 
-                  {/* Libellé ligne */}
                   <div>
                     <input
                       {...register(`lines.${index}.libelle`)}
@@ -597,7 +633,6 @@ function EntryModal({
                     />
                   </div>
 
-                  {/* FIX 2+3: Débit — visible, placeholder vide */}
                   <div>
                     <input
                       {...register(`lines.${index}.debit`, {
@@ -612,7 +647,6 @@ function EntryModal({
                     />
                   </div>
 
-                  {/* FIX 2+3: Crédit — visible côte à côte, placeholder vide */}
                   <div>
                     <input
                       {...register(`lines.${index}.credit`, {
@@ -627,7 +661,6 @@ function EntryModal({
                     />
                   </div>
 
-                  {/* Supprimer */}
                   <div className="flex justify-end">
                     {fields.length > 2 && (
                       <button
@@ -643,7 +676,6 @@ function EntryModal({
                 </div>
               ))}
 
-              {/* Totaux */}
               <div className="grid gap-2 px-3 py-2.5 bg-surface-secondary border-t border-slate-200"
                    style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr auto' }}>
                 <div className="col-span-2 text-xs font-semibold text-slate-500 uppercase
@@ -669,14 +701,12 @@ function EntryModal({
               </div>
             </div>
 
-            {/* Aide visuelle */}
             <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
               Tapez le code ou le nom du compte, puis cliquez sur la suggestion pour le sélectionner.
             </p>
           </div>
 
-          {/* Boutons */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">
               Annuler
@@ -686,8 +716,8 @@ function EntryModal({
               disabled={saving}
               className="btn-primary flex-1 justify-center"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              {saving ? 'Enregistrement…' : 'Enregistrer en brouillon'}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : isEdit ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {saving ? 'Enregistrement…' : isEdit ? 'Enregistrer les modifications' : 'Enregistrer en brouillon'}
             </button>
           </div>
         </form>
