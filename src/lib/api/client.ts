@@ -149,6 +149,12 @@ export const journalApi = {
       { headers: { 'Content-Type': 'multipart/form-data' } },
     ).then((r) => r.data);
   },
+
+  exportCsv: (companyId: string, fiscalYearId?: string) =>
+    api.get<Blob>(`/companies/${companyId}/entries/export-csv`, {
+      params:       fiscalYearId ? { fiscal_year_id: fiscalYearId } : undefined,
+      responseType: 'blob',
+    }).then((r) => r.data),
 };
 
 // ─────────────────────────────────────────────────────────────

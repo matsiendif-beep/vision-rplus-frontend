@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import {
   Plus, Search, Filter, CheckCircle2,
   RotateCcw, ChevronLeft, ChevronRight,
-  Loader2, Trash2, X, AlertCircle, Upload,
+  Loader2, Trash2, X, AlertCircle, Upload, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
@@ -28,8 +28,27 @@ export default function JournalPage() {
   const [search, setSearch]     = useState('');
   const [filterType, setFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting]   = useState(false);
+  const [exporting, setExporting]   = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportCsv = async () => {
+    if (!activeCompany || !activeFiscalYear) return;
+    setExporting(true);
+    try {
+      const blob = await journalApi.exportCsv(activeCompany.id, activeFiscalYear.id);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `journal_${activeCompany.id.slice(0, 8)}_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,6 +91,18 @@ export default function JournalPage() {
                   className="hidden"
                   onChange={handleImportCsv}
                 />
+                <button
+                  onClick={handleExportCsv}
+                  disabled={exporting}
+                  className="btn-secondary text-sm"
+                  title="Exporter le journal en CSV"
+                >
+                  {exporting
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Download className="w-4 h-4" />
+                  }
+                  {exporting ? 'Export…' : 'Exporter CSV'}
+                </button>
                 <button
                   onClick={() => importInputRef.current?.click()}
                   disabled={importing}
