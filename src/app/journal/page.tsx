@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import {
   Plus, Search, Filter, CheckCircle2,
   RotateCcw, ChevronLeft, ChevronRight,
-  Loader2, Trash2, X, AlertCircle,
+  Loader2, Trash2, X, AlertCircle, Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
@@ -28,6 +28,27 @@ export default function JournalPage() {
   const [search, setSearch]     = useState('');
   const [filterType, setFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportCsv = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeCompany) return;
+    e.target.value = '';
+    setImporting(true);
+    try {
+      const result = await journalApi.importCsv(activeCompany.id, file);
+      toast.success(`Import réussi : ${result.created} écriture(s) créée(s)${result.skipped > 0 ? `, ${result.skipped} ignorée(s)` : ''}`);
+      if (result.errors.length > 0) {
+        toast.warning(`${result.errors.length} compte(s) non trouvé(s) — vérifiez votre plan de comptes`);
+      }
+      refetch();
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const { data, loading, error, refetch } = useJournal({
     page,
@@ -43,9 +64,30 @@ export default function JournalPage() {
           subtitle={activeFiscalYear?.label ?? 'Sélectionnez un exercice'}
           actions={
             activeCompany && activeFiscalYear && (
-              <button onClick={() => setShowModal(true)} className="btn-orange">
-                <Plus className="w-4 h-4" /> Saisir une écriture
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleImportCsv}
+                />
+                <button
+                  onClick={() => importInputRef.current?.click()}
+                  disabled={importing}
+                  className="btn-secondary text-sm"
+                  title="Importer un fichier CSV Vision R+"
+                >
+                  {importing
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Upload className="w-4 h-4" />
+                  }
+                  {importing ? 'Import…' : 'Importer CSV'}
+                </button>
+                <button onClick={() => setShowModal(true)} className="btn-orange">
+                  <Plus className="w-4 h-4" /> Saisir une écriture
+                </button>
+              </div>
             )
           }
         />

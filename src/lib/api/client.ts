@@ -136,6 +136,16 @@ export const journalApi = {
 
   reverseEntry: (companyId: string, entryId: string, data: { reversal_date: string; libelle?: string }) =>
     api.post(`/companies/${companyId}/entries/${entryId}/reverse`, data).then((r) => r.data),
+
+  importCsv: (companyId: string, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post<{ created: number; skipped: number; errors: string[] }>(
+      `/companies/${companyId}/entries/import-csv`,
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    ).then((r) => r.data);
+  },
 };
 
 // ─────────────────────────────────────────────────────────────
