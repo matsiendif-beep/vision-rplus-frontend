@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useForm }   from 'react-hook-form';
 import {
   Plus, Building2, ChevronRight, Globe2,
-  Landmark, X, Loader2, Check, Trash2, AlertTriangle,
+  Landmark, X, Loader2, Check, Trash2, AlertTriangle, CalendarPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header     from '@/components/layout/Header';
@@ -50,6 +50,27 @@ export default function CompaniesPage() {
   const [saving, setSaving]       = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Company | null>(null);
+  const [fyCompany, setFyCompany] = useState<Company | null>(null);
+  const [fyLabel, setFyLabel]     = useState('');
+  const [fyStart, setFyStart]     = useState(`${new Date().getFullYear()}-01-01`);
+  const [fyEnd, setFyEnd]         = useState(`${new Date().getFullYear()}-12-31`);
+  const [fyLoading, setFyLoading] = useState(false);
+
+  const handleCreateFiscalYear = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fyCompany) return;
+    setFyLoading(true);
+    try {
+      await companiesApi.createFiscalYear(fyCompany.id, { label: fyLabel, start_date: fyStart, end_date: fyEnd });
+      toast.success('Exercice fiscal créé');
+      setFyCompany(null);
+      setFyLabel('');
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setFyLoading(false);
+    }
+  };
 
   const plan      = user?.plan ?? 'free';
   const limit     = PLAN_LIMITS[plan] ?? 1;
@@ -159,6 +180,13 @@ export default function CompaniesPage() {
                     router.push('/dashboard');
                   }}
                   onDelete={() => setConfirmDelete(company)}
+                  onAddFiscalYear={() => {
+                    setFyCompany(company);
+                    const y = new Date().getFullYear();
+                    setFyLabel(`Exercice ${y}`);
+                    setFyStart(`${y}-01-01`);
+                    setFyEnd(`${y}-12-31`);
+                  }}
                 />
               ))}
             </div>
@@ -201,6 +229,51 @@ export default function CompaniesPage() {
                 Supprimer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal exercice fiscal ─────────────────────── */}
+      {fyCompany && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-slide-up">
+            <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-brand-navy text-sm">Nouvel exercice fiscal</h2>
+                <p className="text-xs text-slate-400">{fyCompany.name}</p>
+              </div>
+              <button onClick={() => setFyCompany(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateFiscalYear} className="p-6 space-y-4">
+              <div>
+                <label className="label">Libellé *</label>
+                <input
+                  className="input" required
+                  value={fyLabel}
+                  onChange={e => setFyLabel(e.target.value)}
+                  placeholder={`Exercice ${new Date().getFullYear()}`}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Début</label>
+                  <input type="date" className="input" value={fyStart} onChange={e => setFyStart(e.target.value)} required />
+                </div>
+                <div>
+                  <label className="label">Fin</label>
+                  <input type="date" className="input" value={fyEnd} onChange={e => setFyEnd(e.target.value)} required />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setFyCompany(null)} className="btn-secondary flex-1 justify-center">Annuler</button>
+                <button type="submit" disabled={fyLoading} className="btn-orange flex-1 justify-center">
+                  {fyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarPlus className="w-4 h-4" />}
+                  {fyLoading ? 'Création…' : 'Créer'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -337,7 +410,7 @@ export default function CompaniesPage() {
 }
 
 function CompanyCard({
-  company, isActive, isOwned, isDeleting, onSelect, onDelete,
+  company, isActive, isOwned, isDeleting, onSelect, onDelete, onAddFiscalYear,
 }: {
   company: Company;
   isActive: boolean;
@@ -345,6 +418,7 @@ function CompanyCard({
   isDeleting: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  onAddFiscalYear: () => void;
 }) {
   return (
     <div
@@ -366,18 +440,28 @@ function CompanyCard({
         <div className="flex items-center gap-2">
           {isActive && <Badge variant="orange" className="text-[10px]">Active</Badge>}
           {isOwned && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              disabled={isDeleting}
-              title="Supprimer l'entreprise"
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300
-                         hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
-            >
-              {isDeleting
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <Trash2 className="w-3.5 h-3.5" />
-              }
-            </button>
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onAddFiscalYear(); }}
+                title="Nouvel exercice fiscal"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300
+                           hover:bg-brand-orange/10 hover:text-brand-orange transition-colors"
+              >
+                <CalendarPlus className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                disabled={isDeleting}
+                title="Supprimer l'entreprise"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300
+                           hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
+              >
+                {isDeleting
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Trash2 className="w-3.5 h-3.5" />
+                }
+              </button>
+            </>
           )}
           <ChevronRight onClick={onSelect} className="w-4 h-4 text-slate-300 cursor-pointer" />
         </div>

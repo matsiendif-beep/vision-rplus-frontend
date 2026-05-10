@@ -245,12 +245,14 @@ function ProfileSettings({ user }: { user: any }) {
 }
 
 // ── Section : Notifications ───────────────────────────────────
+const NOTIF_KEY = 'visionrplus_notif_prefs';
 function NotificationsSettings() {
-  const [prefs, setPrefs] = useState({
-    tresorerie: true,
-    ecritures:  true,
-    rapports:   false,
-    alertes:    true,
+  const [prefs, setPrefs] = useState(() => {
+    if (typeof window === 'undefined') return { tresorerie: true, ecritures: true, rapports: false, alertes: true };
+    try {
+      const stored = localStorage.getItem(NOTIF_KEY);
+      return stored ? JSON.parse(stored) : { tresorerie: true, ecritures: true, rapports: false, alertes: true };
+    } catch { return { tresorerie: true, ecritures: true, rapports: false, alertes: true }; }
   });
 
   return (
@@ -269,7 +271,11 @@ function NotificationsSettings() {
               <p className="text-xs text-slate-400">{desc}</p>
             </div>
             <button
-              onClick={() => setPrefs((p) => ({ ...p, [key]: !p[key as keyof typeof p] }))}
+              onClick={() => setPrefs((p) => {
+                const next = { ...p, [key]: !p[key as keyof typeof p] };
+                localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
+                return next;
+              })}
               className={cn(
                 'w-11 h-6 rounded-full transition-all duration-200 relative flex-shrink-0',
                 prefs[key as keyof typeof prefs]
@@ -291,24 +297,61 @@ function NotificationsSettings() {
 
 // ── Section : Sécurité ────────────────────────────────────────
 function SecuritySettings() {
+  const [current, setCurrent]     = useState('');
+  const [next, setNext]           = useState('');
+  const [confirm, setConfirm]     = useState('');
+  const [saving, setSaving]       = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (next !== confirm) { toast.error('Les mots de passe ne correspondent pas'); return; }
+    if (next.length < 8)  { toast.error('Le mot de passe doit comporter au moins 8 caractères'); return; }
+    setSaving(true);
+    try {
+      const { authApi } = await import('@/lib/api/client');
+      await authApi.changePassword(current, next);
+      toast.success('Mot de passe mis à jour');
+      setCurrent(''); setNext(''); setConfirm('');
+    } catch (err) {
+      const { extractApiError } = await import('@/lib/api/client');
+      toast.error(extractApiError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Card className="p-6">
       <CardHeader title="Sécurité" />
       <div className="space-y-4">
-        <div className="p-4 bg-surface-secondary rounded-xl border border-slate-100">
+        <form onSubmit={handleChangePassword}
+              className="p-4 bg-surface-secondary rounded-xl border border-slate-100">
           <p className="text-sm font-semibold text-brand-navy mb-1">Changer de mot de passe</p>
           <p className="text-xs text-slate-400 mb-3">
             Utilisez un mot de passe fort d'au moins 8 caractères.
           </p>
           <div className="space-y-2">
-            <input type="password" placeholder="Mot de passe actuel" className="input text-sm" />
-            <input type="password" placeholder="Nouveau mot de passe" className="input text-sm" />
-            <input type="password" placeholder="Confirmer le nouveau mot de passe" className="input text-sm" />
+            <input
+              type="password" placeholder="Mot de passe actuel"
+              className="input text-sm" value={current}
+              onChange={e => setCurrent(e.target.value)} required
+            />
+            <input
+              type="password" placeholder="Nouveau mot de passe"
+              className="input text-sm" value={next}
+              onChange={e => setNext(e.target.value)} required
+            />
+            <input
+              type="password" placeholder="Confirmer le nouveau mot de passe"
+              className="input text-sm" value={confirm}
+              onChange={e => setConfirm(e.target.value)} required
+            />
           </div>
-          <button className="btn-primary mt-3 text-xs">
-            <Save className="w-3.5 h-3.5" /> Mettre à jour
+          <button type="submit" disabled={saving} className="btn-primary mt-3 text-xs disabled:opacity-60">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {saving ? 'Mise à jour…' : 'Mettre à jour'}
           </button>
-        </div>
+        </form>
 
         <div className="p-4 bg-surface-secondary rounded-xl border border-slate-100">
           <p className="text-sm font-semibold text-brand-navy mb-1">Sessions actives</p>

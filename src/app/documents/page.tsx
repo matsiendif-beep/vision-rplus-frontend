@@ -8,6 +8,16 @@ import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
 import { Card, Spinner, ErrorMessage, EmptyState, Badge } from '@/components/ui';
 import { documentsApi, extractApiError } from '@/lib/api/client';
+
+const DOC_TYPES = [
+  { value: 'facture',          label: 'Facture' },
+  { value: 'recu',             label: 'Reçu' },
+  { value: 'releve_bancaire',  label: 'Relevé bancaire' },
+  { value: 'contrat',          label: 'Contrat' },
+  { value: 'bon_commande',     label: 'Bon de commande' },
+  { value: 'bulletin_salaire', label: 'Bulletin de salaire' },
+  { value: 'autre',            label: 'Autre' },
+];
 import { useCompanyStore } from '@/lib/store';
 import { formatDate, cn } from '@/lib/utils';
 
@@ -26,7 +36,8 @@ export default function DocumentsPage() {
   const [docs, setDocs]       = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading]   = useState(false);
+  const [docType, setDocType]       = useState('autre');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -68,25 +79,45 @@ export default function DocumentsPage() {
         subtitle="Factures, relevés, contrats…"
         actions={
           activeCompany && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="btn-orange text-xs"
-            >
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              {uploading ? 'Upload…' : 'Ajouter un document'}
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={docType}
+                onChange={e => setDocType(e.target.value)}
+                className="input text-xs py-1.5 h-auto"
+              >
+                {DOC_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="btn-orange text-xs"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploading ? 'Upload…' : 'Ajouter'}
+              </button>
+            </div>
           )
         }
       />
 
       {/* Input fichier caché */}
-      <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-        onChange={e => {
+      <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden"
+        onChange={async e => {
           const file = e.target.files?.[0];
           if (!file || !activeCompany) return;
-          toast.info('Upload direct vers Supabase Storage — intégrez le SDK Supabase côté frontend pour uploader.');
           e.target.value = '';
+          setUploading(true);
+          try {
+            await documentsApi.upload(activeCompany.id, file, { document_type: docType });
+            toast.success('Document uploadé');
+            load();
+          } catch (err) {
+            toast.error(extractApiError(err));
+          } finally {
+            setUploading(false);
+          }
         }}
       />
 
@@ -141,7 +172,7 @@ export default function DocumentsPage() {
                         <Badge variant="green" className="text-[10px]">OCR ✓</Badge>
                       )}
                       <a
-                        href={doc.file_url}
+                        href={documentsApi.fileUrl(activeCompany!.id, doc.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-500 hover:text-blue-700 transition-colors"

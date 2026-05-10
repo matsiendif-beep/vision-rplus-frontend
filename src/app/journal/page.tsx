@@ -460,11 +460,17 @@ function EntryModal({
         })),
       };
       if (isEdit) {
-        await journalApi.updateEntry(companyId, entry.id, payload);
+        const result = await journalApi.updateEntry(companyId, entry.id, payload) as any;
         toast.success('Écriture mise à jour');
+        if (result?.warnings?.length) {
+          result.warnings.forEach((w: string) => toast.warning(w));
+        }
       } else {
-        await journalApi.createEntry(companyId, payload);
+        const result = await journalApi.createEntry(companyId, payload) as any;
         toast.success('Écriture enregistrée en brouillon');
+        if (result?.warnings?.length) {
+          result.warnings.forEach((w: string) => toast.warning(w));
+        }
       }
       onSuccess();
     } catch (err) {

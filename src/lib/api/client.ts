@@ -58,6 +58,12 @@ export const authApi = {
 
   me: () =>
     api.get<User>('/auth/me').then((r) => r.data),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.patch<{ message: string }>('/auth/change-password', {
+      current_password: currentPassword,
+      new_password:     newPassword,
+    }).then((r) => r.data),
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -84,6 +90,9 @@ export const companiesApi = {
 
   fiscalYears: (id: string) =>
     api.get<FiscalYear[]>(`/companies/${id}/fiscal-years`).then((r) => r.data),
+
+  createFiscalYear: (id: string, data: { label: string; start_date: string; end_date: string }) =>
+    api.post<FiscalYear>(`/companies/${id}/fiscal-years`, data).then((r) => r.data),
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -211,8 +220,19 @@ export const documentsApi = {
   get: (companyId: string, id: string) =>
     api.get(`/companies/${companyId}/documents/${id}`).then(r => r.data),
 
-  create: (companyId: string, data: any) =>
-    api.post(`/companies/${companyId}/documents`, data).then(r => r.data),
+  upload: (companyId: string, file: File, meta?: { document_type?: string; note?: string; journal_entry_id?: string }) => {
+    const form = new FormData();
+    form.append('file', file);
+    if (meta?.document_type)    form.append('document_type',    meta.document_type);
+    if (meta?.note)             form.append('note',             meta.note);
+    if (meta?.journal_entry_id) form.append('journal_entry_id', meta.journal_entry_id);
+    return api.post(`/companies/${companyId}/documents`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data);
+  },
+
+  fileUrl: (companyId: string, id: string) =>
+    `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/v1/companies/${companyId}/documents/${id}/file`,
 
   link: (companyId: string, id: string, data: { journal_entry_id?: string }) =>
     api.patch(`/companies/${companyId}/documents/${id}/link`, data).then(r => r.data),

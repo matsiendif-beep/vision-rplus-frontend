@@ -25,6 +25,21 @@ export default function AnalyticsPage() {
       .finally(() => setLoading(false));
   }, [activeCompany, activeFiscalYear]);
 
+  if (!activeCompany || !activeFiscalYear) {
+    return (
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Header title="Analyse financière & KPIs" subtitle="—" />
+        <div className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-center max-w-xs">
+            <BarChart3 className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+            <p className="font-semibold text-brand-navy mb-1">Aucun exercice sélectionné</p>
+            <p className="text-sm text-slate-400">Sélectionnez une entreprise et un exercice fiscal pour afficher les analytics.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 min-w-0 flex flex-col">
       <Header

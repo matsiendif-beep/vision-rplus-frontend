@@ -11,6 +11,21 @@ export default function BalanceSheetPage() {
   const { activeCompany, activeFiscalYear } = useCompanyStore();
   const { data, loading, error }            = useBalanceSheet();
 
+  if (!activeCompany || !activeFiscalYear) {
+    return (
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Header title="Bilan comptable" subtitle="—" />
+        <div className="flex-1 p-6 flex items-center justify-center">
+          <div className="text-center max-w-xs">
+            <Scale className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+            <p className="font-semibold text-brand-navy mb-1">Aucun exercice sélectionné</p>
+            <p className="text-sm text-slate-400">Sélectionnez une entreprise et un exercice fiscal pour afficher le bilan.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 min-w-0 flex flex-col">
         <Header
