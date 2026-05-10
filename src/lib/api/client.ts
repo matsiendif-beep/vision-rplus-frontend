@@ -158,7 +158,7 @@ export const journalApi = {
     return api.post<{ created: number; skipped: number; errors: string[] }>(
       `/companies/${companyId}/entries/import-csv`,
       form,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
+      { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60_000 },
     ).then((r) => r.data);
   },
 
