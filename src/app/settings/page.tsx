@@ -271,7 +271,7 @@ function NotificationsSettings() {
               <p className="text-xs text-slate-400">{desc}</p>
             </div>
             <button
-              onClick={() => setPrefs((p) => {
+              onClick={() => setPrefs((p: typeof prefs) => {
                 const next = { ...p, [key]: !p[key as keyof typeof p] };
                 localStorage.setItem(NOTIF_KEY, JSON.stringify(next));
                 return next;
