@@ -179,6 +179,14 @@ export default function JournalPage() {
                               refetch();
                             } catch (e) { toast.error(extractApiError(e)); }
                           }}
+                          onDelete={async () => {
+                            if (!confirm('Supprimer cette écriture en brouillon ?')) return;
+                            try {
+                              await journalApi.deleteEntry(activeCompany!.id, entry.id);
+                              toast.success('Écriture supprimée');
+                              refetch();
+                            } catch (e) { toast.error(extractApiError(e)); }
+                          }}
                         />
                       ))}
                     </tbody>
@@ -228,11 +236,12 @@ export default function JournalPage() {
 
 // ── Ligne du tableau ──────────────────────────────────────────
 function EntryRow({
-  entry, currency, onValidate,
+  entry, currency, onValidate, onDelete,
 }: {
   entry:       any;
   currency:    string;
   onValidate:  () => void;
+  onDelete:    () => void;
 }) {
   return (
     <tr className="hover:bg-surface-secondary/40 transition-colors group">
@@ -245,7 +254,6 @@ function EntryRow({
       <td className="table-cell font-medium text-brand-navy max-w-xs">
         <div>
           <span className="line-clamp-1">{entry.libelle}</span>
-          {/* Afficher les comptes de l'écriture */}
           {entry.lines && entry.lines.length > 0 && (
             <div className="text-xs text-slate-400 mt-0.5 flex flex-wrap gap-1">
               {entry.lines.slice(0, 3).map((line: any, i: number) => (
@@ -279,14 +287,24 @@ function EntryRow({
       </td>
       <td className="table-cell text-center">
         {entry.status === 'brouillon' && (
-          <button
-            onClick={onValidate}
-            title="Valider l'écriture"
-            className="inline-flex items-center gap-1 text-xs text-emerald-600
-                       hover:text-emerald-700 font-medium transition-colors"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={onValidate}
+              title="Valider l'écriture"
+              className="inline-flex items-center text-xs text-emerald-600
+                         hover:text-emerald-700 transition-colors"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              title="Supprimer l'écriture"
+              className="inline-flex items-center text-xs text-slate-300
+                         hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </td>
     </tr>

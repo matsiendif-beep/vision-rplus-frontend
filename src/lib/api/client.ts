@@ -134,6 +134,9 @@ export const journalApi = {
     api.post<JournalEntry>(`/companies/${companyId}/entries/${entryId}/validate`)
        .then((r) => r.data),
 
+  deleteEntry: (companyId: string, entryId: string) =>
+    api.delete(`/companies/${companyId}/entries/${entryId}`).then((r) => r.data),
+
   reverseEntry: (companyId: string, entryId: string, data: { reversal_date: string; libelle?: string }) =>
     api.post(`/companies/${companyId}/entries/${entryId}/reverse`, data).then((r) => r.data),
 
