@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import {
   Plus, Search, Filter, CheckCircle2,
   RotateCcw, ChevronLeft, ChevronRight,
-  Loader2, Trash2, X, AlertCircle, Upload, Download, Pencil,
+  Loader2, Trash2, X, AlertCircle, Upload, Download, Pencil, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
@@ -29,9 +29,28 @@ export default function JournalPage() {
   const [filterType, setFilter] = useState('');
   const [showModal, setShowModal]       = useState(false);
   const [editingEntry, setEditingEntry] = useState<any | null>(null);
-  const [importing, setImporting]       = useState(false);
-  const [exporting, setExporting]       = useState(false);
+  const [importing, setImporting]         = useState(false);
+  const [exporting, setExporting]         = useState(false);
+  const [cleaning, setCleaning]           = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCleanUnbalanced = async () => {
+    if (!activeCompany) return;
+    setCleaning(true);
+    try {
+      const result = await journalApi.deleteUnbalancedDrafts(activeCompany.id);
+      if (result.deleted === 0) {
+        toast.info('Aucun brouillon déséquilibré trouvé');
+      } else {
+        toast.success(`${result.deleted} brouillon(s) déséquilibré(s) supprimé(s)`);
+        refetch();
+      }
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   const handleExportCsv = async () => {
     if (!activeCompany || !activeFiscalYear) return;
@@ -58,9 +77,12 @@ export default function JournalPage() {
     setImporting(true);
     try {
       const result = await journalApi.importCsv(activeCompany.id, file);
-      toast.success(`Import réussi : ${result.created} écriture(s) créée(s)${result.skipped > 0 ? `, ${result.skipped} ignorée(s)` : ''}`);
+      toast.success(`Import : ${result.created} écriture(s) créée(s)${result.skipped > 0 ? ` · ${result.skipped} ignorée(s)` : ''}`);
       if (result.errors.length > 0) {
-        toast.warning(`${result.errors.length} compte(s) non trouvé(s) — vérifiez votre plan de comptes`);
+        result.errors.slice(0, 3).forEach((e: string) => toast.warning(e));
+        if (result.errors.length > 3) {
+          toast.warning(`… et ${result.errors.length - 3} autre(s) avertissement(s)`);
+        }
       }
       refetch();
     } catch (err) {
@@ -115,6 +137,18 @@ export default function JournalPage() {
                     : <Upload className="w-4 h-4" />
                   }
                   {importing ? 'Import…' : 'Importer CSV'}
+                </button>
+                <button
+                  onClick={handleCleanUnbalanced}
+                  disabled={cleaning}
+                  className="btn-secondary text-sm text-amber-600 border-amber-200 hover:bg-amber-50"
+                  title="Supprimer tous les brouillons déséquilibrés (< 2 lignes ou débit ≠ crédit)"
+                >
+                  {cleaning
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <AlertTriangle className="w-4 h-4" />
+                  }
+                  Nettoyer
                 </button>
                 <button onClick={() => setShowModal(true)} className="btn-orange">
                   <Plus className="w-4 h-4" /> Saisir une écriture
@@ -290,8 +324,16 @@ function EntryRow({
   onEdit:      () => void;
   onDelete:    () => void;
 }) {
+  const isUnbalanced = entry.status === 'brouillon' && (
+    entry.lines?.length < 2 ||
+    Math.abs(parseFloat(entry.total_debit) - parseFloat(entry.total_credit)) > 0.01
+  );
+
   return (
-    <tr className="hover:bg-surface-secondary/40 transition-colors group">
+    <tr className={cn(
+      'hover:bg-surface-secondary/40 transition-colors group',
+      isUnbalanced && 'bg-amber-50/60',
+    )}>
       <td className="table-cell font-mono text-xs text-slate-500 whitespace-nowrap">
         {formatDate(entry.entry_date, true)}
       </td>
@@ -300,7 +342,14 @@ function EntryRow({
       </td>
       <td className="table-cell font-medium text-brand-navy max-w-xs">
         <div>
-          <span className="line-clamp-1">{entry.libelle}</span>
+          <span className="line-clamp-1 flex items-center gap-1.5">
+            {entry.libelle}
+            {isUnbalanced && (
+              <span title="Écriture déséquilibrée — modifier ou supprimer">
+                <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />
+              </span>
+            )}
+          </span>
           {entry.lines && entry.lines.length > 0 && (
             <div className="text-xs text-slate-400 mt-0.5 flex flex-wrap gap-1">
               {entry.lines.slice(0, 3).map((line: any, i: number) => (

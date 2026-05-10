@@ -149,6 +149,9 @@ export const journalApi = {
   reverseEntry: (companyId: string, entryId: string, data: { reversal_date: string; libelle?: string }) =>
     api.post(`/companies/${companyId}/entries/${entryId}/reverse`, data).then((r) => r.data),
 
+  deleteUnbalancedDrafts: (companyId: string) =>
+    api.delete<{ deleted: number }>(`/companies/${companyId}/entries/unbalanced-drafts`).then((r) => r.data),
+
   importCsv: (companyId: string, file: File) => {
     const form = new FormData();
     form.append('file', file);
