@@ -4,16 +4,19 @@ import { useRouter } from 'next/navigation';
 import { useForm }   from 'react-hook-form';
 import {
   Plus, Building2, ChevronRight, Globe2,
-  Landmark, X, Loader2, Check,
+  Landmark, X, Loader2, Check, Trash2, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header     from '@/components/layout/Header';
 import { Card, EmptyState, Spinner, ErrorMessage, Badge } from '@/components/ui';
 import { companiesApi, extractApiError } from '@/lib/api/client';
 import { useCompanies }     from '@/lib/hooks';
-import { useCompanyStore }  from '@/lib/store';
+import { useCompanyStore, useAuthStore }  from '@/lib/store';
 import { cn, formatDate, SYSTEM_LABELS } from '@/lib/utils';
 import type { Company, AccountingSystem, Currency } from '@/types';
+
+const PLAN_LIMITS: Record<string, number> = { free: 1, pro: 3, cabinet: Infinity };
+const PLAN_LABELS: Record<string, string> = { free: 'Gratuit', pro: 'Pro', cabinet: 'Cabinet' };
 
 const SYSTEM_OPTIONS: { value: AccountingSystem; label: string; desc: string }[] = [
   { value: 'pcg_france', label: 'PCG France',  desc: 'Plan Comptable Général — entreprises françaises' },
@@ -42,8 +45,34 @@ export default function CompaniesPage() {
   const router                    = useRouter();
   const { data, loading, error, refetch } = useCompanies();
   const { setActiveCompany, activeCompany } = useCompanyStore();
+  const { user }                  = useAuthStore();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving]       = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Company | null>(null);
+
+  const plan      = user?.plan ?? 'free';
+  const limit     = PLAN_LIMITS[plan] ?? 1;
+  const ownedCount = data?.owned?.length ?? 0;
+  const canCreate = ownedCount < limit;
+
+  const onDelete = async (company: Company) => {
+    setDeletingId(company.id);
+    try {
+      await companiesApi.remove(company.id);
+      toast.success(`Entreprise "${company.name}" supprimée`);
+      if (activeCompany?.id === company.id) {
+        const next = [...(data?.owned ?? []), ...(data?.shared ?? [])].find(c => c.id !== company.id);
+        if (next) setActiveCompany(next);
+      }
+      refetch();
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setDeletingId(null);
+      setConfirmDelete(null);
+    }
+  };
 
   const { register, handleSubmit, watch, setValue, formState: { errors }, reset } =
     useForm<CreateForm>({
@@ -81,9 +110,16 @@ export default function CompaniesPage() {
     <div className="flex-1 min-w-0 flex flex-col">
         <Header
           title="Entreprises"
-          subtitle="Gérez vos dossiers comptables"
+          subtitle={
+            limit === Infinity
+              ? 'Gérez vos dossiers comptables'
+              : `${ownedCount} / ${limit} entreprise${limit > 1 ? 's' : ''} — Plan ${PLAN_LABELS[plan]}`
+          }
           actions={
-            <button onClick={() => setShowModal(true)} className="btn-orange">
+            <button
+              onClick={() => canCreate ? setShowModal(true) : toast.error(`Votre plan ${PLAN_LABELS[plan]} est limité à ${limit} entreprise(s). Passez au plan supérieur.`)}
+              className={cn('btn-orange', !canCreate && 'opacity-60 cursor-not-allowed')}
+            >
               <Plus className="w-4 h-4" /> Nouvelle entreprise
             </button>
           }
@@ -116,16 +152,58 @@ export default function CompaniesPage() {
                   key={company.id}
                   company={company}
                   isActive={activeCompany?.id === company.id}
+                  isOwned={company.owner_id === user?.id}
+                  isDeleting={deletingId === company.id}
                   onSelect={() => {
                     setActiveCompany(company);
                     router.push('/dashboard');
                   }}
+                  onDelete={() => setConfirmDelete(company)}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Modal confirmation suppression ────────── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-brand-navy">Supprimer l'entreprise</h3>
+                <p className="text-xs text-slate-400">Cette action est irréversible</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-5">
+              Voulez-vous vraiment supprimer <strong>{confirmDelete.name}</strong> ?
+              Toutes les données comptables seront désactivées.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="btn-secondary flex-1 justify-center"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => onDelete(confirmDelete)}
+                disabled={!!deletingId}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl
+                           bg-red-500 hover:bg-red-600 text-white text-sm font-semibold
+                           transition-colors disabled:opacity-60"
+              >
+                {deletingId ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal création ────────────────────────────── */}
       {showModal && (
@@ -259,48 +337,72 @@ export default function CompaniesPage() {
 }
 
 function CompanyCard({
-  company, isActive, onSelect,
-}: { company: Company; isActive: boolean; onSelect: () => void }) {
+  company, isActive, isOwned, isDeleting, onSelect, onDelete,
+}: {
+  company: Company;
+  isActive: boolean;
+  isOwned: boolean;
+  isDeleting: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div
-      onClick={onSelect}
       className={cn(
-        'card card-hover p-5 cursor-pointer transition-all duration-200',
+        'card p-5 transition-all duration-200',
         isActive && 'ring-2 ring-brand-orange/40 border-brand-orange/30',
       )}
     >
       <div className="flex items-start justify-between mb-3">
-        <div className={cn(
-          'w-10 h-10 rounded-xl flex items-center justify-center',
-          isActive ? 'bg-brand-orange/15' : 'bg-surface-tertiary',
-        )}>
+        <div
+          onClick={onSelect}
+          className={cn(
+            'w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer',
+            isActive ? 'bg-brand-orange/15' : 'bg-surface-tertiary',
+          )}
+        >
           <Landmark className={cn('w-5 h-5', isActive ? 'text-brand-orange' : 'text-slate-400')} />
         </div>
         <div className="flex items-center gap-2">
-          {isActive && (
-            <Badge variant="orange" className="text-[10px]">Active</Badge>
+          {isActive && <Badge variant="orange" className="text-[10px]">Active</Badge>}
+          {isOwned && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              disabled={isDeleting}
+              title="Supprimer l'entreprise"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300
+                         hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
+            >
+              {isDeleting
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Trash2 className="w-3.5 h-3.5" />
+              }
+            </button>
           )}
-          <ChevronRight className="w-4 h-4 text-slate-300" />
+          <ChevronRight onClick={onSelect} className="w-4 h-4 text-slate-300 cursor-pointer" />
         </div>
       </div>
 
-      <h3 className="font-bold text-brand-navy text-sm mb-0.5 line-clamp-1">{company.name}</h3>
-      {company.legal_form && (
-        <p className="text-xs text-slate-400 mb-3">{company.legal_form}</p>
-      )}
+      <div onClick={onSelect} className="cursor-pointer">
+        <h3 className="font-bold text-brand-navy text-sm mb-0.5 line-clamp-1">{company.name}</h3>
+        {company.legal_form && (
+          <p className="text-xs text-slate-400 mb-3">{company.legal_form}</p>
+        )}
 
-      <div className="flex items-center gap-2 flex-wrap mt-2">
-        <Badge variant={company.accounting_system === 'ohada' ? 'blue' : 'default'}>
-          {SYSTEM_LABELS[company.accounting_system]}
-        </Badge>
-        <span className="text-xs text-slate-400 flex items-center gap-1">
-          <Globe2 className="w-3 h-3" />{company.country}
-        </span>
-        <span className="text-xs text-slate-400 font-mono">{company.currency}</span>
-      </div>
+        <div className="flex items-center gap-2 flex-wrap mt-2">
+          <Badge variant={company.accounting_system === 'ohada' ? 'blue' : 'default'}>
+            {SYSTEM_LABELS[company.accounting_system]}
+          </Badge>
+          <span className="text-xs text-slate-400 flex items-center gap-1">
+            <Globe2 className="w-3 h-3" />{company.country}
+          </span>
+          <span className="text-xs text-slate-400 font-mono">{company.currency}</span>
+        </div>
 
-      <div className="mt-3 pt-3 border-t border-slate-50 text-xs text-slate-400">
-        Créé le {formatDate(company.created_at, true)}
+        <div className="mt-3 pt-3 border-t border-slate-50 text-xs text-slate-400 flex items-center justify-between">
+          <span>Créé le {formatDate(company.created_at, true)}</span>
+          {!isOwned && <Badge variant="default" className="text-[10px]">Partagée</Badge>}
+        </div>
       </div>
     </div>
   );

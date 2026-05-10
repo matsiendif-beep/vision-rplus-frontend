@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useForm }  from 'react-hook-form';
-import { Save, Loader2, Globe2, Bell, Shield, User } from 'lucide-react';
+import { Save, Loader2, Globe2, Bell, Shield, User, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
 import { Card, CardHeader, Badge } from '@/components/ui';
@@ -73,6 +73,9 @@ export default function SettingsPage() {
 // ── Section : Entreprise active ───────────────────────────────
 function CompanySettings({ company, onUpdate }: { company: any; onUpdate: (c: any) => void }) {
   const [saving, setSaving] = useState(false);
+  const { user }            = useAuthStore();
+  const isOwner             = !!user && !!company && company.owner_id === user.id;
+
   const { register, handleSubmit, watch, setValue } = useForm({
     defaultValues: {
       name:              company?.name ?? '',
@@ -113,6 +116,12 @@ function CompanySettings({ company, onUpdate }: { company: any; onUpdate: (c: an
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {!isOwner && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+          <Shield className="w-4 h-4 flex-shrink-0" />
+          Seul le propriétaire de cette entreprise peut modifier ces paramètres.
+        </div>
+      )}
       <Card className="p-6">
         <CardHeader title="Identité de l'entreprise" />
         <div className="space-y-4">
@@ -183,9 +192,9 @@ function CompanySettings({ company, onUpdate }: { company: any; onUpdate: (c: an
       </Card>
 
       <div className="flex justify-end">
-        <button type="submit" disabled={saving} className="btn-primary">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? 'Enregistrement…' : 'Sauvegarder'}
+        <button type="submit" disabled={saving || !isOwner} className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : isOwner ? <Save className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+          {saving ? 'Enregistrement…' : isOwner ? 'Sauvegarder' : 'Lecture seule'}
         </button>
       </div>
     </form>

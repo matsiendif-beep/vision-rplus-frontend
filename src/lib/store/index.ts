@@ -75,10 +75,15 @@ export const useCompanyStore = create<CompanyState>()(
 
       setCompanies: (companies) => {
         set({ companies });
-        // Auto-sélectionner la première si aucune n'est active
         const current = useCompanyStore.getState().activeCompany;
-        if (!current && companies.length > 0) {
-          useCompanyStore.getState().setActiveCompany(companies[0]);
+        // Vérifier que l'entreprise active appartient bien à cet utilisateur
+        const isAccessible = current && companies.some((c) => c.id === current.id);
+        if (!isAccessible) {
+          if (companies.length > 0) {
+            useCompanyStore.getState().setActiveCompany(companies[0]);
+          } else {
+            set({ activeCompany: null, activeFiscalYear: null });
+          }
         }
       },
 
