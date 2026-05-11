@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import {
   Plus, Search, Filter, CheckCircle2,
   RotateCcw, ChevronLeft, ChevronRight,
-  Loader2, Trash2, X, AlertCircle, Upload, Download, Pencil, AlertTriangle,
+  Loader2, Trash2, X, AlertCircle, Upload, Download, Pencil, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
@@ -32,7 +32,24 @@ export default function JournalPage() {
   const [importing, setImporting]         = useState(false);
   const [exporting, setExporting]         = useState(false);
   const [cleaning, setCleaning]           = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting]         = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleResetAllDrafts = async () => {
+    if (!activeCompany) return;
+    setResetting(true);
+    try {
+      const result = await journalApi.deleteAllDrafts(activeCompany.id);
+      toast.success(`${result.deleted} écriture(s) supprimée(s) — journal remis à zéro`);
+      setShowResetConfirm(false);
+      refetch();
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const handleCleanUnbalanced = async () => {
     if (!activeCompany) return;
@@ -149,6 +166,18 @@ export default function JournalPage() {
                     : <AlertTriangle className="w-4 h-4" />
                   }
                   Nettoyer
+                </button>
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  disabled={resetting}
+                  className="btn-secondary text-sm text-red-600 border-red-200 hover:bg-red-50"
+                  title="Supprimer tous les brouillons et recommencer à zéro"
+                >
+                  {resetting
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Trash2 className="w-4 h-4" />
+                  }
+                  Tout effacer
                 </button>
                 <button onClick={() => setShowModal(true)} className="btn-orange">
                   <Plus className="w-4 h-4" /> Saisir une écriture
@@ -309,6 +338,48 @@ export default function JournalPage() {
           onClose={() => setEditingEntry(null)}
           onSuccess={() => { setEditingEntry(null); refetch(); }}
         />
+      )}
+
+      {/* Modal confirmation — Tout effacer */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-slate-900">Supprimer tous les brouillons ?</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Cette action supprimera <strong>toutes les écritures en brouillon</strong> de ce dossier.
+                  Les écritures validées ne seront pas affectées.
+                </p>
+                <p className="mt-2 text-xs text-red-600 font-medium">
+                  Cette opération est irréversible.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                disabled={resetting}
+                className="btn-secondary text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleResetAllDrafts}
+                disabled={resetting}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {resetting
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Suppression…</>
+                  : <><Trash2 className="w-4 h-4" /> Confirmer la suppression</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
