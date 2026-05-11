@@ -295,6 +295,12 @@ export const analyticsApi = {
       params: { fiscal_year_id: fiscalYearId, ...(accountCode && { account_code: accountCode }) },
     }).then(r => r.data),
 
+  exportFec: (companyId: string, fiscalYearId: string) =>
+    api.get<Blob>(`/companies/${companyId}/analytics/export-fec`, {
+      params:       { fiscal_year_id: fiscalYearId },
+      responseType: 'blob',
+    }).then(r => r.data),
+
   bilan: (companyId: string, fiscalYearId: string) =>
     api.get(`/companies/${companyId}/analytics/bilan`, { params: { fiscal_year_id: fiscalYearId } })
        .then(r => r.data),
