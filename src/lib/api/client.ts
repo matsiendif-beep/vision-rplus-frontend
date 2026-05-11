@@ -155,6 +155,9 @@ export const journalApi = {
   deleteAllDrafts: (companyId: string) =>
     api.delete<{ deleted: number }>(`/companies/${companyId}/entries/all-drafts`).then((r) => r.data),
 
+  deleteAllEntries: (companyId: string) =>
+    api.delete<{ deleted: number }>(`/companies/${companyId}/entries/all-entries`).then((r) => r.data),
+
   importCsv: (companyId: string, file: File) => {
     const form = new FormData();
     form.append('file', file);

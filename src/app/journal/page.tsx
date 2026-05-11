@@ -40,7 +40,7 @@ export default function JournalPage() {
     if (!activeCompany) return;
     setResetting(true);
     try {
-      const result = await journalApi.deleteAllDrafts(activeCompany.id);
+      const result = await journalApi.deleteAllEntries(activeCompany.id);
       toast.success(`${result.deleted} écriture(s) supprimée(s) — journal remis à zéro`);
       setShowResetConfirm(false);
       refetch();
@@ -349,10 +349,10 @@ export default function JournalPage() {
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-semibold text-slate-900">Supprimer tous les brouillons ?</h3>
+                <h3 className="text-base font-semibold text-slate-900">Remettre le journal à zéro ?</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Cette action supprimera <strong>toutes les écritures en brouillon</strong> de ce dossier.
-                  Les écritures validées ne seront pas affectées.
+                  Cette action supprimera <strong>toutes les écritures</strong> de ce dossier —
+                  brouillons <em>et</em> écritures validées.
                 </p>
                 <p className="mt-2 text-xs text-red-600 font-medium">
                   Cette opération est irréversible.
