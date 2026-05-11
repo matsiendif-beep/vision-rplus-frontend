@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import {
   Plus, Receipt, FileText, CheckCircle2,
-  Send, Loader2, X, AlertTriangle,
+  Send, Loader2, X, AlertTriangle, Printer,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
@@ -88,11 +88,29 @@ export default function TaxPage() {
               <button
                 onClick={generateDsf}
                 disabled={dsfLoading}
-                className="btn-primary text-xs"
+                className="btn-secondary text-xs"
               >
                 {dsfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Générer DSF
               </button>
+              <a
+                href="/dsf-print"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-xs inline-flex items-center gap-1.5"
+                title="Ouvrir la DSF OHADA en version PDF imprimable"
+              >
+                <Printer className="w-4 h-4" /> DSF PDF (OHADA)
+              </a>
+              <a
+                href="/liasse-print"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-xs inline-flex items-center gap-1.5"
+                title="Ouvrir la liasse fiscale PCG France en version PDF imprimable"
+              >
+                <Printer className="w-4 h-4" /> Liasse PDF (France)
+              </a>
               <button onClick={() => setShowModal(true)} className="btn-orange text-xs">
                 <Plus className="w-4 h-4" /> Nouvelle déclaration
               </button>
