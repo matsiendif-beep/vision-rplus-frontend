@@ -10,7 +10,7 @@ function fmt(n: number | undefined | null) {
   }).format(n);
 }
 
-function LigneActif({ ref: ref_, libelle, brut, amort, net }: { ref: string; libelle: string; brut?: number; amort?: number; net?: number }) {
+function LigneActif({ ref_, libelle, brut, amort, net }: { ref_: string; libelle: string; brut?: number; amort?: number; net?: number }) {
   return (
     <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
       <td style={{ padding: '3px 6px', fontSize: 10, fontWeight: 600, color: '#6b7280', width: 36 }}>{ref_}</td>
@@ -22,7 +22,7 @@ function LigneActif({ ref: ref_, libelle, brut, amort, net }: { ref: string; lib
   );
 }
 
-function LigneTotal({ ref: ref_, libelle, net, brut }: { ref: string; libelle: string; net?: number; brut?: number }) {
+function LigneTotal({ ref_, libelle, net, brut }: { ref_: string; libelle: string; net?: number; brut?: number }) {
   return (
     <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
       <td style={{ padding: '5px 6px', fontSize: 10, fontWeight: 700, color: '#1e293b' }}>{ref_}</td>
@@ -34,7 +34,7 @@ function LigneTotal({ ref: ref_, libelle, net, brut }: { ref: string; libelle: s
   );
 }
 
-function LigneCR({ ref: ref_, libelle, montant, isTotal }: { ref: string; libelle: string; montant?: number; isTotal?: boolean }) {
+function LigneCR({ ref_, libelle, montant, isTotal }: { ref_: string; libelle: string; montant?: number; isTotal?: boolean }) {
   return (
     <tr style={{ borderBottom: '1px solid #e5e7eb', background: isTotal ? '#f1f5f9' : undefined }}>
       <td style={{ padding: '3px 6px', fontSize: 10, fontWeight: 600, color: '#6b7280', width: 36 }}>{ref_}</td>

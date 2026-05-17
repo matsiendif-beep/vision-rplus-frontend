@@ -18,7 +18,7 @@ const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1`
     : '/api/v1',
-  timeout: 15_000,
+  timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -340,6 +340,13 @@ export const bankApi = {
 // ── Helpers ───────────────────────────────────────────────────
 export const extractApiError = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
+    // Erreur réseau (pas de réponse du serveur)
+    if (!err.response) {
+      if (err.code === 'ECONNABORTED') {
+        return 'Le serveur met trop de temps à répondre. Réessayez dans quelques secondes.';
+      }
+      return 'Impossible de joindre le serveur. Vérifiez votre connexion internet et réessayez.';
+    }
     const msg = (err.response?.data as any)?.message;
     if (Array.isArray(msg)) return msg.join(' · ');
     return msg ?? err.message;
