@@ -132,6 +132,7 @@ export default function LandingPage() {
             <a href="#features" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">Fonctionnalités</a>
             <a href="#systems" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">OHADA & PCG</a>
             <a href="#pricing" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">Tarifs</a>
+            <Link href="/guide" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">Guide</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
