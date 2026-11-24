@@ -17,11 +17,17 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user:            null,
       isAuthenticated: false,
 
       setUser: (user, access_token, refresh_token) => {
+        // Changement de compte sur le même navigateur : oublier l'entreprise
+        // mémorisée du compte précédent (sinon on retombe sur ses données).
+        const previous = get().user;
+        if (!previous || previous.id !== user.id) {
+          useCompanyStore.getState().clear();
+        }
         // Stocker les tokens dans les cookies (HttpOnly idéal mais on utilise js-cookie)
         Cookies.set('access_token',  access_token,  { expires: 7,  secure: true, sameSite: 'strict' });
         Cookies.set('refresh_token', refresh_token, { expires: 30, secure: true, sameSite: 'strict' });

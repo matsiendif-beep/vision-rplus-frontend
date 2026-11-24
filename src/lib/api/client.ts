@@ -35,7 +35,11 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    // Sur /auth/login et /auth/register, un 401 signifie « identifiants incorrects » :
+    // on laisse la page afficher le message au lieu de la recharger.
+    const url = error.config?.url ?? '';
+    const isAuthForm = url.includes('/auth/login') || url.includes('/auth/register');
+    if (error.response?.status === 401 && !isAuthForm) {
       Cookies.remove('access_token');
       Cookies.remove('refresh_token');
       if (typeof window !== 'undefined') {
