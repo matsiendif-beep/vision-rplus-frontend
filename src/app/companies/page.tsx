@@ -74,7 +74,8 @@ export default function CompaniesPage() {
 
   const plan      = user?.plan ?? 'free';
   const limit     = PLAN_LIMITS[plan] ?? 1;
-  const ownedCount = data?.owned?.length ?? 0;
+  // L'entreprise de démonstration ne compte pas dans la limite du plan
+  const ownedCount = data?.owned?.filter((c) => !c.is_demo).length ?? 0;
   const canCreate = ownedCount < limit;
 
   const onDelete = async (company: Company) => {
@@ -486,6 +487,7 @@ function CompanyCard({
         <div className="mt-3 pt-3 border-t border-slate-50 text-xs text-slate-400 flex items-center justify-between">
           <span>Créé le {formatDate(company.created_at, true)}</span>
           {!isOwned && <Badge variant="default" className="text-[10px]">Partagée</Badge>}
+          {company.is_demo && <Badge variant="orange" className="text-[10px]">Démo</Badge>}
         </div>
       </div>
     </div>

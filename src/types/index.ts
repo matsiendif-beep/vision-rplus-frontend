@@ -60,6 +60,7 @@ export interface Company {
   fiscal_year_start: string;
   fiscal_year_end:   string;
   is_active:         boolean;
+  is_demo?:          boolean;
   created_at:        string;
   fiscal_years?:     FiscalYear[];
   _count?: {

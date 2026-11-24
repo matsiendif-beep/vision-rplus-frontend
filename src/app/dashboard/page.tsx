@@ -40,15 +40,23 @@ export default function DashboardPage() {
               Aucune entreprise sélectionnée
             </h2>
             <p className="text-slate-500 text-sm mb-6">
-              Créez votre premier dossier comptable ou sélectionnez une entreprise existante
-              depuis le menu latéral.
+              Laissez-vous guider en 5 minutes : créez votre dossier comptable ou explorez
+              une entreprise de démonstration avec un vrai bilan.
             </p>
-            <button
-              onClick={() => router.push('/companies')}
-              className="btn-orange"
-            >
-              <Plus className="w-4 h-4" /> Créer une entreprise
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => router.push('/onboarding')}
+                className="btn-orange"
+              >
+                <Plus className="w-4 h-4" /> Lancer l&apos;assistant de démarrage
+              </button>
+              <button
+                onClick={() => router.push('/companies')}
+                className="btn-secondary"
+              >
+                Mes entreprises
+              </button>
+            </div>
           </div>
         </div>
       </div>

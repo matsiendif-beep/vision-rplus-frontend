@@ -79,6 +79,9 @@ export const companiesApi = {
   create: (data: Partial<Company>) =>
     api.post<Company>('/companies', data).then((r) => r.data),
 
+  createDemo: () =>
+    api.post<Company>('/companies/demo', {}, { timeout: 60_000 }).then((r) => r.data),
+
   update: (id: string, data: Partial<Company>) =>
     api.patch<Company>(`/companies/${id}`, data).then((r) => r.data),
 

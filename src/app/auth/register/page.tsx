@@ -34,7 +34,7 @@ export default function RegisterPage() {
       const res = await authApi.register(data);
       setUser(res.user, res.access_token, res.refresh_token);
       toast.success('Compte créé ! Bienvenue sur Vision R+.');
-      router.push('/companies');
+      router.push('/onboarding');
     } catch (err) {
       toast.error(extractApiError(err));
     } finally {
