@@ -7,7 +7,7 @@ import {
   TrendingUp, Scale, Settings, LogOut,
   ChevronDown, Plus, Landmark,
   BarChart3, Package, FileText, Banknote, Receipt,
-  BookMarked, ListOrdered,
+  BookMarked, ListOrdered, ListTree,
 } from 'lucide-react';
 import { useAuthStore, useCompanyStore } from '@/lib/store';
 import { cn, SYSTEM_LABELS } from '@/lib/utils';
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { href: '/companies',        label: 'Entreprises',          icon: Building2,       group: 'principal' },
   // ── Comptabilité
   { href: '/journal',          label: 'Journal',              icon: BookOpen,        group: 'compta' },
+  { href: '/plan-comptable',   label: 'Plan comptable',       icon: ListTree,        group: 'compta' },
   { href: '/grand-livre',      label: 'Grand Livre',          icon: BookMarked,      group: 'compta' },
   { href: '/balance',          label: 'Balance des comptes',  icon: ListOrdered,     group: 'compta' },
   { href: '/income-statement', label: 'Compte de résultat',   icon: TrendingUp,      group: 'compta' },

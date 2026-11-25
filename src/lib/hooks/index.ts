@@ -14,7 +14,8 @@ function makeRow(id: string, code: string, label: string, solde: number): Accoun
     account_type:  'charge' as any,
     total_debit:   solde >= 0 ? solde : 0,
     total_credit:  solde < 0 ? -solde : 0,
-    solde:         Math.abs(solde),
+    // Signe conservé : un report à nouveau débiteur ou une perte s'affiche en négatif
+    solde:         solde,
     nature:        'debiteur',
   };
 }
@@ -42,22 +43,28 @@ function mapDashboard(raw: any): Dashboard {
 function mapIncomeStatement(raw: any): IncomeStatement {
   const p = raw.produits ?? {};
   const c = raw.charges  ?? {};
+  // Numéros affichés selon le plan de l'entreprise (doit suivre le backend :
+  // AnalyticsService.getCompteResultat — classes 6 à 8)
+  const ohada = raw.system !== 'pcg_france';
+  const R = ohada
+    ? { ca: '70', subv: '71', autresP: '72-79, 82-88', fin: '77', achats: '60', serv: '61-63', impots: '64', pers: '66', autresC: '65, 81-87', chFin: '67', dot: '68-69', is: '89' }
+    : { ca: '70', subv: '74', autresP: '71-79',        fin: '76', achats: '60', serv: '61-62', impots: '63', pers: '64', autresC: '65, 67',     chFin: '66', dot: '68',    is: '69' };
   const produits: AccountBalance[] = [
-    makeRow('70-72', '70-72', "Chiffre d'affaires",            p.chiffre_affaires    ?? 0),
-    makeRow('74',    '74',    "Subventions d'exploitation",     p.subventions_expl    ?? 0),
-    makeRow('75-79', '75-79', 'Autres produits d\'exploitation',p.autres_produits     ?? 0),
-    makeRow('76',    '76',    'Produits financiers',            p.produits_financiers ?? 0),
+    makeRow('p1', R.ca,      "Chiffre d'affaires",                                   p.chiffre_affaires    ?? 0),
+    makeRow('p2', R.subv,    "Subventions d'exploitation",                            p.subventions_expl    ?? 0),
+    makeRow('p3', R.autresP, ohada ? 'Autres produits (dont HAO)' : 'Autres produits', p.autres_produits     ?? 0),
+    makeRow('p4', R.fin,     'Produits financiers',                                   p.produits_financiers ?? 0),
   ].filter(r => r.solde > 0);
 
   const charges: AccountBalance[] = [
-    makeRow('60-61', '60-61', 'Achats et variation de stocks',  c.achats_variation_stocks  ?? 0),
-    makeRow('62',    '62',    'Services extérieurs',            c.services_exterieurs       ?? 0),
-    makeRow('63',    '63',    'Impôts et taxes',                c.impots_taxes              ?? 0),
-    makeRow('64',    '64',    'Charges de personnel',           c.charges_personnel         ?? 0),
-    makeRow('65',    '65',    'Autres charges d\'exploitation',  c.autres_charges            ?? 0),
-    makeRow('66',    '66',    'Charges financières',            c.charges_financieres       ?? 0),
-    makeRow('68',    '68',    'Dotations aux amortissements',   c.dotations_amortissements  ?? 0),
-    makeRow('89',    '89',    "Impôt sur le résultat",          c.impot_sur_resultat        ?? 0),
+    makeRow('c1', R.achats,  'Achats et variation de stocks',               c.achats_variation_stocks  ?? 0),
+    makeRow('c2', R.serv,    'Services extérieurs',                         c.services_exterieurs       ?? 0),
+    makeRow('c3', R.impots,  'Impôts et taxes',                             c.impots_taxes              ?? 0),
+    makeRow('c4', R.pers,    'Charges de personnel',                        c.charges_personnel         ?? 0),
+    makeRow('c5', R.autresC, ohada ? 'Autres charges (dont HAO)' : 'Autres charges (dont exceptionnelles)', c.autres_charges ?? 0),
+    makeRow('c6', R.chFin,   'Charges financières',                         c.charges_financieres       ?? 0),
+    makeRow('c7', R.dot,     'Dotations aux amortissements et provisions',  c.dotations_amortissements  ?? 0),
+    makeRow('c8', R.is,      "Impôt sur le résultat",                       c.impot_sur_resultat        ?? 0),
   ].filter(r => r.solde > 0);
 
   return {
@@ -78,11 +85,14 @@ function mapBalanceSheet(raw: any): BalanceSheet {
   const cp = p.capitaux_propres ?? {};
   const df = p.dettes_financieres ?? {};
   const pc = p.passif_circulant ?? {};
+  // Libellés selon le plan de l'entreprise (cf. AnalyticsService.getBilan — classes 1 à 5)
+  const ohada = raw.system !== 'pcg_france';
 
+  // Montants nets des amortissements (28) et dépréciations (29)
   const immobilisations: AccountBalance[] = [
-    makeRow('21', '20-21', 'Immobilisations incorporelles', im.incorporelles ?? 0),
-    makeRow('22', '22-25', 'Immobilisations corporelles',   im.corporelles   ?? 0),
-    makeRow('26', '26-28', 'Immobilisations financières',   im.financieres   ?? 0),
+    makeRow('2i', ohada ? '21' : '20',       'Immobilisations incorporelles (nettes)', im.incorporelles ?? 0),
+    makeRow('2c', ohada ? '22-25' : '21-23', 'Immobilisations corporelles (nettes)',   im.corporelles   ?? 0),
+    makeRow('2f', '26-27',                   'Immobilisations financières (nettes)',   im.financieres   ?? 0),
   ].filter(r => r.solde !== 0);
 
   const stocks: AccountBalance[] = [
@@ -90,8 +100,8 @@ function mapBalanceSheet(raw: any): BalanceSheet {
   ].filter(r => r.solde !== 0);
 
   const creances: AccountBalance[] = [
-    makeRow('411', '411-412', 'Créances clients',   ac.creances_clients ?? 0),
-    makeRow('4x',  '4xx',     'Autres créances',    ac.autres_creances  ?? 0),
+    makeRow('41', '41',  'Créances clients',                   ac.creances_clients ?? 0),
+    makeRow('4x', '4xx', 'Autres créances (TVA récupérable…)', ac.autres_creances  ?? 0),
   ].filter(r => r.solde !== 0);
 
   const tresoActif: AccountBalance[] = [
@@ -99,17 +109,17 @@ function mapBalanceSheet(raw: any): BalanceSheet {
   ].filter(r => r.solde !== 0);
 
   const capitauxPropres: AccountBalance[] = [
-    makeRow('101', '101-104', 'Capital',     cp.capital     ?? 0),
-    makeRow('11',  '11-13',   'Réserves',    cp.reserves    ?? 0),
+    makeRow('10', ohada ? '10' : '101, 108-109',      'Capital',                              cp.capital  ?? 0),
+    makeRow('11', ohada ? '11-15' : '104-107, 11-14', 'Réserves, report à nouveau et autres', cp.reserves ?? 0),
     makeRow('13',  'Résultat','Résultat net', cp.resultat_net ?? 0),
   ].filter(r => r.solde !== 0);
 
   const emprunts: AccountBalance[] = [
-    makeRow('16', '16-18', 'Emprunts à long terme', df.emprunts_lt ?? 0),
+    makeRow('16', ohada ? '16-19' : '15-17', 'Emprunts, dettes financières et provisions', df.emprunts_lt ?? 0),
   ].filter(r => r.solde !== 0);
 
   const dettesF: AccountBalance[] = [
-    makeRow('401', '401-402', 'Fournisseurs',   pc.fournisseurs  ?? 0),
+    makeRow('40',  '40',      'Fournisseurs',   pc.fournisseurs  ?? 0),
     makeRow('4xx', '4xx',     'Autres dettes',  pc.autres_dettes ?? 0),
   ].filter(r => r.solde !== 0);
 

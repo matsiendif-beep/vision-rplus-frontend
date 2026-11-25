@@ -103,9 +103,12 @@ export interface Account {
   is_detail:   boolean;
   is_active:   boolean;
   created_at:  string;
+  /** true = sous-compte créé par l'entreprise (modifiable) */
+  is_custom?:  boolean;
 }
 
 export interface AccountsResponse {
+  system?:  AccountingSystem;
   accounts: Account[];
   grouped:  Record<string, Account[]>;
   total:    number;
