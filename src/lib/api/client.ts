@@ -158,7 +158,25 @@ export const accountsApi = {
 
   remove: (companyId: string, accountId: string) =>
     api.delete(`/companies/${companyId}/accounts/${accountId}`).then((r) => r.data),
+
+  /** Comptes « ancien libellé » portant des écritures dans l'entreprise */
+  legacyUsage: (companyId: string) =>
+    api.get<{ id: string; code: string; label: string; lines: number }[]>(`/companies/${companyId}/accounts/legacy-usage`)
+       .then((r) => r.data),
+
+  /** Reclassement du solde d'un compte (dry_run = aperçu sans rien créer) */
+  reclassify: (companyId: string, accountId: string, targetAccountId: string, dryRun: boolean) =>
+    api.post<ReclassPreview>(`/companies/${companyId}/accounts/${accountId}/reclassify`, { target_account_id: targetAccountId, dry_run: dryRun })
+       .then((r) => r.data),
 };
+
+export interface ReclassPreview {
+  source: { id: string; code: string; label: string };
+  target: { id: string; code: string; label: string };
+  ecritures: { fiscal_year_id: string; exercice: string; montant: number; sens: 'debiteur' | 'crediteur'; date: string; cloture: boolean }[];
+  brouillons_restants: number;
+  entries_created?: number;
+}
 
 // ─────────────────────────────────────────────────────────────
 //  JOURNAL

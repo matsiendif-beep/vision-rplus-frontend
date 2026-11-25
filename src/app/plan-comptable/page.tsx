@@ -10,7 +10,7 @@ import { Plus, Search, Loader2, Pencil, Trash2, X, Info, ListTree } from 'lucide
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import { Spinner, ErrorMessage, Badge } from '@/components/ui';
-import { accountsApi, extractApiError } from '@/lib/api/client';
+import { accountsApi, extractApiError, type ReclassPreview } from '@/lib/api/client';
 import { useCompanyStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import type { Account, AccountingSystem } from '@/types';
@@ -44,12 +44,18 @@ export default function PlanComptablePage() {
   const [onlyCustom, setOnlyCustom] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing]   = useState<Account | null>(null);
+  const [legacy, setLegacy]     = useState<{ id: string; code: string; label: string; lines: number }[]>([]);
+  const [reclassing, setReclassing] = useState<{ id: string; code: string; label: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompany) return;
     setLoading(true); setError(null);
     try {
-      const res = await accountsApi.list(activeCompany.id);
+      const [res, lg] = await Promise.all([
+        accountsApi.list(activeCompany.id),
+        accountsApi.legacyUsage(activeCompany.id).catch(() => []),
+      ]);
+      setLegacy(lg);
       setAccounts(res.accounts);
       setSystem(res.system ?? activeCompany.accounting_system);
     } catch (e) {
@@ -143,6 +149,18 @@ export default function PlanComptablePage() {
           </span>
         </div>
 
+        {legacy.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 space-y-2">
+            <p><b>Écritures à reclasser.</b> Des écritures ont été passées sur des comptes dont le libellé a changé avec la mise en conformité du plan comptable. Reclassez-les vers le bon compte (une écriture d&apos;opérations diverses est créée, l&apos;historique reste intact).</p>
+            {legacy.map((l) => (
+              <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 bg-white/70 rounded-lg px-3 py-2">
+                <span><b className="font-mono">{l.code}</b> — {l.label.replace(/\s*\(ancien libellé.*\)$/, '')} · {l.lines} ligne{l.lines > 1 ? 's' : ''}</span>
+                <button onClick={() => setReclassing(l)} className="btn-orange text-xs">Reclasser</button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {loading && <div className="flex justify-center py-16"><Spinner size="lg" /></div>}
 
         {!loading && filtered.length === 0 && (
@@ -195,6 +213,15 @@ export default function PlanComptablePage() {
           system={system}
           onClose={() => setCreating(false)}
           onCreated={() => { setCreating(false); load(); }}
+        />
+      )}
+      {reclassing && (
+        <ReclassModal
+          companyId={activeCompany.id}
+          source={reclassing}
+          accounts={accounts}
+          onClose={() => setReclassing(null)}
+          onDone={() => { setReclassing(null); load(); }}
         />
       )}
       {editing && (
@@ -314,6 +341,80 @@ function SubAccountModal({ companyId, accounts, system, onClose, onCreated }: {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// ── Reclassement d'un compte à ancien libellé ────────────────
+function ReclassModal({ companyId, source, accounts, onClose, onDone }: {
+  companyId: string; source: { id: string; code: string; label: string }; accounts: Account[];
+  onClose: () => void; onDone: () => void;
+}) {
+  const firstWord = source.label.replace(/\s*\(ancien libellé.*\)$/, '').split(/[\s,]+/)[0] ?? '';
+  const [q, setQ] = useState(firstWord);
+  const [target, setTarget] = useState<Account | null>(null);
+  const [preview, setPreview] = useState<ReclassPreview | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const options = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return accounts.filter((a) => a.id !== source.id && a.is_detail && !a.label.includes(LEGACY)
+      && a.code[0] === source.code[0] && (!s || a.code.startsWith(s) || a.label.toLowerCase().includes(s))).slice(0, 10);
+  }, [accounts, q, source]);
+
+  const pick = async (a: Account) => {
+    setTarget(a); setPreview(null); setBusy(true);
+    try { setPreview(await accountsApi.reclassify(companyId, source.id, a.id, true)); }
+    catch (e) { toast.error(extractApiError(e)); }
+    finally { setBusy(false); }
+  };
+
+  const confirmReclass = async () => {
+    if (!target) return;
+    setBusy(true);
+    try {
+      const r = await accountsApi.reclassify(companyId, source.id, target.id, false);
+      toast.success(`${r.entries_created} écriture(s) de reclassement créée(s) : ${source.code} → ${target.code}`);
+      onDone();
+    } catch (e) { toast.error(extractApiError(e)); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="card w-full max-w-lg p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-bold text-brand-navy">Reclasser le compte {source.code}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-brand-navy"><X className="w-5 h-5" /></button>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">Choisissez le compte officiel qui correspond réellement à ces écritures (même classe).</p>
+        <input value={q} onChange={(e) => { setQ(e.target.value); setTarget(null); setPreview(null); }} className="input mb-2" placeholder="Rechercher le bon compte…" />
+        {!target && (
+          <ul className="border border-slate-100 rounded-xl max-h-56 overflow-auto mb-4">
+            {options.map((a) => (
+              <li key={a.id}><button onClick={() => pick(a)} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"><b className="font-mono">{a.code}</b> — {a.label}</button></li>
+            ))}
+            {options.length === 0 && <li className="px-3 py-2 text-sm text-slate-400">Aucun compte de la classe {source.code[0]} ne correspond.</li>}
+          </ul>
+        )}
+        {busy && !preview && <div className="py-4 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>}
+        {preview && (
+          <div className="text-sm bg-slate-50 rounded-xl p-3 mb-4 space-y-1">
+            {preview.ecritures.length === 0
+              ? <p>Le compte est déjà soldé : rien à reclasser.</p>
+              : preview.ecritures.map((e) => (
+                <p key={e.fiscal_year_id}>{e.exercice} · écriture du {new Date(e.date).toLocaleDateString('fr-FR')} : <b>{e.sens === 'debiteur' ? 'débit' : 'crédit'} {preview.target.code}</b> / {e.sens === 'debiteur' ? 'crédit' : 'débit'} {preview.source.code} — <b>{e.montant.toLocaleString('fr-FR')}</b>{e.cloture ? ' (exercice clôturé : impossible)' : ''}</p>
+              ))}
+            {preview.brouillons_restants > 0 && <p className="text-amber-700">{preview.brouillons_restants} ligne(s) en brouillon restent sur {preview.source.code} : corrigez-les dans le journal avant de les valider.</p>}
+          </div>
+        )}
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="btn-secondary">Annuler</button>
+          <button onClick={confirmReclass} disabled={!preview || !preview.ecritures.length || busy || preview.ecritures.some((e) => e.cloture)} className="btn-orange">
+            {busy && preview && <Loader2 className="w-4 h-4 animate-spin" />} Valider le reclassement
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
