@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useForm }   from 'react-hook-form';
 import {
   Plus, Building2, ChevronRight, Globe2,
-  Landmark, X, Loader2, Check, Trash2, AlertTriangle, CalendarPlus,
+  Landmark, X, Loader2, Check, Trash2, AlertTriangle, CalendarPlus, Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header     from '@/components/layout/Header';
@@ -127,6 +127,24 @@ export default function CompaniesPage() {
   };
 
   const allCompanies = [...(data?.owned ?? []), ...(data?.shared ?? [])];
+  const hasDemo = (data?.owned ?? []).some((c) => c.is_demo);
+  const [creatingDemo, setCreatingDemo] = useState(false);
+
+  // Entreprise de démonstration (ne compte pas dans la limite du plan)
+  const openDemo = async () => {
+    setCreatingDemo(true);
+    try {
+      const demo = await companiesApi.createDemo();
+      toast.success('Entreprise de démonstration prête');
+      await refetch();
+      setActiveCompany(await companiesApi.get(demo.id));
+      router.push('/dashboard');
+    } catch (err) {
+      toast.error(extractApiError(err));
+    } finally {
+      setCreatingDemo(false);
+    }
+  };
 
   return (
     <>
@@ -139,6 +157,14 @@ export default function CompaniesPage() {
               : `${ownedCount} / ${limit} entreprise${limit > 1 ? 's' : ''} — Plan ${PLAN_LABELS[plan]}`
           }
           actions={
+            <div className="flex items-center gap-2">
+            {!hasDemo && (
+              <button onClick={openDemo} disabled={creatingDemo} className="btn-secondary">
+                {creatingDemo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span className="hidden sm:inline">Voir une entreprise de démonstration</span>
+                <span className="sm:hidden">Démo</span>
+              </button>
+            )}
             <button
               onClick={() => canCreate ? setShowModal(true) : toast.error(
                 plan === 'cabinet'
@@ -149,6 +175,7 @@ export default function CompaniesPage() {
             >
               <Plus className="w-4 h-4" /> Nouvelle entreprise
             </button>
+            </div>
           }
         />
 
