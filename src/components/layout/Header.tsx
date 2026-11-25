@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Bell, ChevronDown, Calendar, Menu } from 'lucide-react';
+import { ChevronDown, Calendar, Menu } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 import { useCompanyStore } from '@/lib/store';
 import { cn, formatDate }  from '@/lib/utils';
 import { useSidebar } from './SidebarContext';
@@ -88,12 +89,8 @@ export default function Header({ title, subtitle, actions }: HeaderProps) {
           </div>
         )}
 
-        {/* Notifications */}
-        <button className="relative w-9 h-9 flex items-center justify-center rounded-xl
-                           bg-surface-secondary hover:bg-surface-tertiary transition-colors">
-          <Bell className="w-4 h-4 text-slate-500" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-orange rounded-full" />
-        </button>
+        {/* Notifications (pastille seulement s'il y a quelque chose à faire) */}
+        <NotificationBell />
 
         {/* Actions custom */}
         {actions}

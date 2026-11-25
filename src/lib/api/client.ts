@@ -334,7 +334,15 @@ export const taxApi = {
 // ─────────────────────────────────────────────────────────────
 //  ANALYTICS & KPIs
 // ─────────────────────────────────────────────────────────────
+export interface AppNotification {
+  id: string; severity: 'critique' | 'attention' | 'info'; title: string; message: string; href: string;
+}
+
 export const analyticsApi = {
+  notifications: (companyId: string, fiscalYearId?: string) =>
+    api.get<AppNotification[]>(`/companies/${companyId}/analytics/notifications`, { params: fiscalYearId ? { fiscal_year_id: fiscalYearId } : {} })
+       .then((r) => r.data),
+
   dashboard: (companyId: string, fiscalYearId: string) =>
     api.get(`/companies/${companyId}/analytics/dashboard`, { params: { fiscal_year_id: fiscalYearId } })
        .then(r => r.data),
