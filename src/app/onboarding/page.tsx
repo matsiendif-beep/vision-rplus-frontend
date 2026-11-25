@@ -300,7 +300,8 @@ export default function OnboardingPage() {
             {user?.plan === 'free' && (
               <p className="text-xs text-slate-500 bg-slate-50 rounded-xl p-3 mb-4">
                 Plan Gratuit : toutes les fonctions, 10 écritures par mois. Pour importer un journal complet,
-                le plan Pro offre des écritures illimitées (14 jours d&apos;essai gratuit).
+                le plan Pro offre des écritures illimitées (14 jours d&apos;essai gratuit) —{' '}
+                <a href="/abonnement" className="text-brand-orange underline">voir les formules</a>.
               </p>
             )}
             <div className="grid sm:grid-cols-2 gap-3 mb-8">

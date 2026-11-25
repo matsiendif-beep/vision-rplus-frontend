@@ -2,6 +2,7 @@
 // Compteur du quota d'écritures du plan Gratuit (10 par mois).
 // N'affiche rien pour les formules payantes et l'entreprise de démonstration.
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Gauge } from 'lucide-react';
 import { companiesApi } from '@/lib/api/client';
 import { cn } from '@/lib/utils';
@@ -32,9 +33,12 @@ export default function EntryQuota({ companyId, refreshKey }: { companyId: strin
       <span>
         Plan Gratuit : <b>{usage.used} / {usage.limit}</b> écritures ce mois-ci.
         {full
-          ? ' Limite atteinte : passez au plan Pro pour des écritures illimitées (14 jours d\'essai gratuit).'
+          ? ' Limite atteinte : passez au plan Pro pour des écritures illimitées.'
           : ` Il vous en reste ${usage.remaining}.`}
       </span>
+      <Link href="/abonnement" className="ml-auto text-brand-orange font-semibold hover:underline whitespace-nowrap">
+        Voir les formules →
+      </Link>
     </div>
   );
 }

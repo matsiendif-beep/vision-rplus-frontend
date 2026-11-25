@@ -7,7 +7,7 @@ import {
   TrendingUp, Scale, Settings, LogOut,
   ChevronDown, Plus, Landmark,
   BarChart3, Package, FileText, Banknote, Receipt,
-  BookMarked, ListOrdered, ListTree,
+  BookMarked, ListOrdered, ListTree, Crown,
 } from 'lucide-react';
 import { useAuthStore, useCompanyStore } from '@/lib/store';
 import { cn, SYSTEM_LABELS } from '@/lib/utils';
@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { href: '/bank',             label: 'Banque',               icon: Banknote,        group: 'analyse' },
   // ── Documents & Paramètres
   { href: '/documents',        label: 'Documents',            icon: FileText,        group: 'outils' },
+  { href: '/abonnement',       label: 'Abonnement',           icon: Crown,           group: 'outils' },
   { href: '/settings',         label: 'Paramètres',           icon: Settings,        group: 'outils' },
 ];
 

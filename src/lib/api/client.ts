@@ -74,6 +74,31 @@ export const authApi = {
 };
 
 // ─────────────────────────────────────────────────────────────
+//  ABONNEMENT (Stripe + Mobile Money)
+// ─────────────────────────────────────────────────────────────
+export type PaidPlan = 'pro' | 'cabinet';
+export interface SubscriptionInfo {
+  currentPlan: 'free' | PaidPlan;
+  subscription: null | {
+    plan: PaidPlan; status: 'essai' | 'actif' | 'expire' | 'annule';
+    provider: 'stripe' | 'mobile_money';
+    current_period_end: string | null; trial_ends_at: string | null; cancel_at_period_end: boolean;
+  };
+  hadSubscription: boolean;
+  prices: Record<PaidPlan, { EUR: number; XAF: number; XOF: number }>;
+  providers: { stripe: boolean; stripe_test: boolean; mobile_money: boolean };
+}
+
+export const billingApi = {
+  subscription: () => api.get<SubscriptionInfo>('/billing/subscription').then((r) => r.data),
+  checkout:     (plan: PaidPlan) => api.post<{ url: string }>('/billing/checkout', { plan }).then((r) => r.data),
+  changePlan:   (plan: PaidPlan) => api.post<{ plan: PaidPlan }>('/billing/change-plan', { plan }).then((r) => r.data),
+  portal:       () => api.post<{ url: string }>('/billing/portal').then((r) => r.data),
+  mobileMoney:  (data: { plan: PaidPlan; currency: 'XAF' | 'XOF'; phone: string; countryCode: string }) =>
+    api.post<{ payment_url: string }>('/billing/cinetpay/checkout', data).then((r) => r.data),
+};
+
+// ─────────────────────────────────────────────────────────────
 //  COMPANIES
 // ─────────────────────────────────────────────────────────────
 export const companiesApi = {
