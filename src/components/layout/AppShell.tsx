@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import { SidebarContext } from './SidebarContext';
+import TermsGate from './TermsGate';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -36,6 +37,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 min-w-0 overflow-auto">
           {children}
         </main>
+
+        {/* Acceptation des nouvelles CGU/CGV par les comptes existants */}
+        <TermsGate />
       </div>
     </SidebarContext.Provider>
   );

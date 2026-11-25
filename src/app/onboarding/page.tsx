@@ -297,9 +297,15 @@ export default function OnboardingPage() {
           <div>
             <h2 className="text-xl font-bold text-brand-navy mb-1">Tout est prêt ! Par quoi commencer ?</h2>
             <p className="text-slate-500 text-sm mb-6">Choisissez une action. Vous retrouverez tout dans le menu latéral.</p>
+            {user?.plan === 'free' && (
+              <p className="text-xs text-slate-500 bg-slate-50 rounded-xl p-3 mb-4">
+                Plan Gratuit : toutes les fonctions, 10 écritures par mois. Pour importer un journal complet,
+                le plan Pro offre des écritures illimitées (14 jours d&apos;essai gratuit).
+              </p>
+            )}
             <div className="grid sm:grid-cols-2 gap-3 mb-8">
               <Action icon={FileSpreadsheet} title="Importer mon journal Excel"
-                      desc="Vos écritures existantes, en 2 minutes"
+                      desc="Depuis Excel : Fichier → Enregistrer sous → CSV"
                       disabled={!company} onClick={() => goTo('/journal', company)} />
               <Action icon={PenLine} title="Saisir une écriture"
                       desc="Achat, vente, banque, caisse…"

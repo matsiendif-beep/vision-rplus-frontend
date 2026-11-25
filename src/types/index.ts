@@ -25,6 +25,8 @@ export interface User {
   is_verified:  boolean;
   created_at:   string;
   _count?: { owned_companies: number };
+  /** Renvoyé par /auth/me : version des CGU en vigueur et dernière version acceptée */
+  legal?: { current_version: string; accepted_version: string | null };
 }
 
 export interface AuthTokens {
@@ -244,6 +246,7 @@ export interface RegisterForm extends LoginForm {
   first_name: string;
   last_name:  string;
   phone?:     string;
+  accept_terms: boolean;
 }
 
 export interface JournalLineForm {

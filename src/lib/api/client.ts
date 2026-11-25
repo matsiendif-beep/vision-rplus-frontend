@@ -63,6 +63,9 @@ export const authApi = {
   me: () =>
     api.get<User>('/auth/me').then((r) => r.data),
 
+  acceptTerms: (version: string) =>
+    api.post<{ accepted_version: string }>('/auth/accept-terms', { version }).then((r) => r.data),
+
   changePassword: (currentPassword: string, newPassword: string) =>
     api.patch<{ message: string }>('/auth/change-password', {
       current_password: currentPassword,
@@ -85,6 +88,10 @@ export const companiesApi = {
 
   createDemo: () =>
     api.post<Company>('/companies/demo', {}, { timeout: 60_000 }).then((r) => r.data),
+
+  usage: (id: string) =>
+    api.get<{ limited: boolean; used?: number; limit?: number; remaining?: number }>(`/companies/${id}/usage`)
+      .then((r) => r.data),
 
   update: (id: string, data: Partial<Company>) =>
     api.patch<Company>(`/companies/${id}`, data).then((r) => r.data),

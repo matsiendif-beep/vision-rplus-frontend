@@ -35,13 +35,13 @@ const features = [
   },
   {
     icon: Icon.ai,
-    title: 'Assistant IA intégré',
-    desc: 'Posez vos questions en français. L\'IA analyse vos données financières et vous conseille en temps réel.',
+    title: 'Assistant IA (bientôt)',
+    desc: 'Bientôt : posez vos questions en français, l\'IA analyse vos données financières et vous répond.',
   },
   {
     icon: Icon.shield,
     title: 'Sécurité & multi-utilisateurs',
-    desc: 'Gestion des rôles (admin, comptable, lecture). Piste d\'audit complète. Données chiffrées et sauvegardées.',
+    desc: 'Gestion des rôles (admin, comptable, lecture). Connexions chiffrées, mots de passe protégés, accès cloisonnés par entreprise.',
   },
   {
     icon: Icon.globe,
@@ -50,19 +50,24 @@ const features = [
   },
 ];
 
-const plans = [
+// Doit rester cohérent avec les CGV (src/app/legal/cgu) et src/lib/legal.ts.
+// { soon: true } = affiché « Bientôt » : non inclus tant que non livré (CGV art. 5).
+type PlanFeature = string | { label: string; soon: true };
+const plans: {
+  name: string; price: string; fcfa: string; desc: string; color: string; badge: string | null;
+  features: PlanFeature[]; cta: string; href: string; primary: boolean;
+}[] = [
   {
     name: 'Gratuit',
     price: '0',
+    fcfa: '',
     desc: 'Pour démarrer',
     color: 'border-gray-200',
     badge: null,
     features: [
       '1 entreprise',
-      '10 écritures/mois',
-      'Journal & Grand Livre',
-      'Balance des comptes',
-      'Bilan & Compte de résultat',
+      '10 écritures par mois',
+      'Toutes les fonctions : journal, bilan, fiscalité, immobilisations, banque',
       'OHADA ou PCG France',
     ],
     cta: 'Commencer gratuitement',
@@ -72,6 +77,7 @@ const plans = [
   {
     name: 'Pro',
     price: '29',
+    fcfa: '19 000 FCFA',
     desc: 'Pour les PME',
     color: 'border-brand-orange',
     badge: 'Populaire',
@@ -81,9 +87,9 @@ const plans = [
       'Fiscalité & DSF complète',
       'Immobilisations & amortissements',
       'Gestion bancaire & rapprochement',
-      'Assistant IA comptable',
-      'Export PDF & Excel',
+      'Export PDF & CSV (Excel)',
       'Support prioritaire',
+      { label: 'Assistant IA comptable', soon: true },
     ],
     cta: 'Essayer 14 jours',
     href: '/auth/register',
@@ -92,21 +98,22 @@ const plans = [
   {
     name: 'Cabinet',
     price: '79',
+    fcfa: '52 000 FCFA',
     desc: 'Pour les experts-comptables',
     color: 'border-brand-navy',
     badge: null,
     features: [
-      'Entreprises illimitées',
+      '10 entreprises incluses',
+      '+5 €/mois (3 000 FCFA) par entreprise supplémentaire',
       'Tout le plan Pro',
       'Multi-utilisateurs & rôles',
-      'Gestion de portefeuille clients',
-      'Piste d\'audit avancée',
-      'WhatsApp Business intégré',
-      'API & webhooks',
-      'Account manager dédié',
+      'Accompagnement personnalisé à la prise en main',
+      { label: 'Piste d\'audit avancée', soon: true },
+      { label: 'WhatsApp Business intégré', soon: true },
+      { label: 'API & webhooks', soon: true },
     ],
     cta: 'Contacter les ventes',
-    href: '/auth/register',
+    href: 'mailto:contact@visionrplus.com?subject=Plan%20Cabinet%20Vision%20R%2B',
     primary: false,
   },
 ];
@@ -177,7 +184,7 @@ export default function LandingPage() {
 
           <p className="text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
             Vision R+ est la plateforme SaaS qui simplifie la comptabilité des PME africaines et françaises.
-            Journal, bilan, fiscalité, IA — tout en un, depuis votre navigateur.
+            Journal, bilan, fiscalité, immobilisations — tout en un, depuis votre navigateur.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -323,15 +330,23 @@ export default function LandingPage() {
                     <span className="text-4xl font-bold text-brand-navy">{plan.price}€</span>
                     <span className="text-gray-400 mb-1">/mois</span>
                   </div>
+                  {plan.fcfa && <div className="text-gray-400 text-sm mt-1">ou {plan.fcfa}/mois en Mobile Money</div>}
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-3 text-sm text-gray-600">
-                      <span className="text-brand-orange flex-shrink-0"><Icon.check /></span>
-                      {f}
-                    </li>
-                  ))}
+                  {plan.features.map(f => {
+                    const label = typeof f === 'string' ? f : f.label;
+                    const soon  = typeof f !== 'string';
+                    return (
+                      <li key={label} className={`flex items-center gap-3 text-sm ${soon ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className={`flex-shrink-0 ${soon ? 'text-gray-300' : 'text-brand-orange'}`}><Icon.check /></span>
+                        <span>
+                          {label}
+                          {soon && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">Bientôt</span>}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 <Link href={plan.href}
@@ -394,8 +409,12 @@ export default function LandingPage() {
             <div>
               <div className="font-semibold text-brand-navy text-sm mb-4">Entreprise</div>
               <ul className="space-y-2">
-                {['À propos', 'Contact', 'Blog', 'Support'].map(l => (
-                  <li key={l}><a href="#" className="text-gray-400 text-sm hover:text-brand-orange transition-colors">{l}</a></li>
+                {[
+                  { label: 'Contact', href: 'mailto:contact@visionrplus.com' },
+                  { label: 'Support', href: 'mailto:contact@visionrplus.com?subject=Support%20Vision%20R%2B' },
+                  { label: 'Guide d\'utilisation', href: '/guide' },
+                ].map(l => (
+                  <li key={l.label}><a href={l.href} className="text-gray-400 text-sm hover:text-brand-orange transition-colors">{l.label}</a></li>
                 ))}
               </ul>
             </div>
@@ -404,9 +423,9 @@ export default function LandingPage() {
               <div className="font-semibold text-brand-navy text-sm mb-4">Légal</div>
               <ul className="space-y-2">
                 {[
-                  { label: 'Politique de confidentialité', href: '/legal/privacy' },
-                  { label: 'Conditions d\'utilisation', href: '#' },
-                  { label: 'Mentions légales', href: '#' },
+                  { label: 'Conditions générales (CGU / CGV)', href: '/legal/cgu' },
+                  { label: 'Politique de confidentialité', href: '/legal/confidentialite' },
+                  { label: 'Mentions légales', href: '/legal/mentions-legales' },
                 ].map(l => (
                   <li key={l.label}><a href={l.href} className="text-gray-400 text-sm hover:text-brand-orange transition-colors">{l.label}</a></li>
                 ))}

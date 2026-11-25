@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
+import EntryQuota from '@/components/journal/EntryQuota';
 import {
   Card, Badge, EmptyState, TableSkeleton, ErrorMessage,
 } from '@/components/ui';
@@ -189,6 +190,10 @@ export default function JournalPage() {
 
         <div className="flex-1 p-6 space-y-4 animate-fade-in">
           {error && <ErrorMessage message={error} />}
+
+          {activeCompany && (
+            <EntryQuota companyId={activeCompany.id} refreshKey={(data as any)?.total ?? (data as any)?.meta?.total ?? data} />
+          )}
 
           {/* ── Barre de filtres ─────────────────────── */}
           <Card className="p-4">

@@ -15,7 +15,8 @@ import { useCompanyStore, useAuthStore }  from '@/lib/store';
 import { cn, formatDate, SYSTEM_LABELS } from '@/lib/utils';
 import type { Company, AccountingSystem, Currency } from '@/types';
 
-const PLAN_LIMITS: Record<string, number> = { free: 1, pro: 3, cabinet: Infinity };
+// Doit rester identique au backend (common/plan/plan-limits.service.ts) et aux CGV
+const PLAN_LIMITS: Record<string, number> = { free: 1, pro: 3, cabinet: 10 };
 const PLAN_LABELS: Record<string, string> = { free: 'Gratuit', pro: 'Pro', cabinet: 'Cabinet' };
 
 const SYSTEM_OPTIONS: { value: AccountingSystem; label: string; desc: string }[] = [
@@ -139,7 +140,11 @@ export default function CompaniesPage() {
           }
           actions={
             <button
-              onClick={() => canCreate ? setShowModal(true) : toast.error(`Votre plan ${PLAN_LABELS[plan]} est limité à ${limit} entreprise(s). Passez au plan supérieur.`)}
+              onClick={() => canCreate ? setShowModal(true) : toast.error(
+                plan === 'cabinet'
+                  ? `Votre plan Cabinet inclut ${limit} entreprises. Chaque entreprise supplémentaire coûte 5 €/mois (3 000 FCFA) : écrivez à contact@visionrplus.com pour l'ajouter.`
+                  : `Votre plan ${PLAN_LABELS[plan]} est limité à ${limit} entreprise${limit > 1 ? 's' : ''}. Passez au plan supérieur.`,
+              )}
               className={cn('btn-orange', !canCreate && 'opacity-60 cursor-not-allowed')}
             >
               <Plus className="w-4 h-4" /> Nouvelle entreprise

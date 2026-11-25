@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link          from 'next/link';
 import { useForm }   from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z }          from 'zod';
@@ -16,6 +17,9 @@ const schema = z.object({
   email:      z.string().email('Email invalide'),
   password:   z.string().min(8, '8 caractères minimum'),
   phone:      z.string().optional(),
+  accept_terms: z.literal(true, {
+    errorMap: () => ({ message: 'Vous devez accepter les conditions générales pour créer un compte' }),
+  }),
 });
 
 export default function RegisterPage() {
@@ -112,6 +116,29 @@ export default function RegisterPage() {
               </div>
               {errors.password && (
                 <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-start gap-2.5 text-xs text-slate-600 leading-relaxed cursor-pointer">
+                <input
+                  {...register('accept_terms')}
+                  type="checkbox"
+                  className="mt-0.5 w-4 h-4 shrink-0 accent-brand-orange"
+                />
+                <span>
+                  J&apos;accepte les{' '}
+                  <Link href="/legal/cgu" target="_blank" className="text-brand-orange underline">
+                    conditions générales d&apos;utilisation et de vente
+                  </Link>{' '}
+                  et j&apos;ai pris connaissance de la{' '}
+                  <Link href="/legal/confidentialite" target="_blank" className="text-brand-orange underline">
+                    politique de confidentialité
+                  </Link>.
+                </span>
+              </label>
+              {errors.accept_terms && (
+                <p className="text-red-500 text-xs mt-1">{errors.accept_terms.message}</p>
               )}
             </div>
 
