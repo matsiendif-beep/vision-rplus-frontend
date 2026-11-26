@@ -136,6 +136,7 @@ export default function LandingPage() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
+            <a href="#demo" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">Démo</a>
             <a href="#features" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">Fonctionnalités</a>
             <a href="#systems" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">OHADA & PCG</a>
             <a href="#pricing" className="text-sm text-gray-600 hover:text-brand-navy transition-colors">Tarifs</a>
@@ -160,6 +161,7 @@ export default function LandingPage() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 flex flex-col gap-4">
+            <a href="#demo" onClick={() => setMenuOpen(false)} className="text-sm text-gray-600">Démo</a>
             <a href="#features" onClick={() => setMenuOpen(false)} className="text-sm text-gray-600">Fonctionnalités</a>
             <a href="#systems" onClick={() => setMenuOpen(false)} className="text-sm text-gray-600">OHADA & PCG</a>
             <a href="#pricing" onClick={() => setMenuOpen(false)} className="text-sm text-gray-600">Tarifs</a>
@@ -192,9 +194,9 @@ export default function LandingPage() {
               className="w-full sm:w-auto bg-brand-orange hover:bg-brand-orange-400 text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all hover:shadow-lg hover:-translate-y-0.5">
               Commencer gratuitement
             </Link>
-            <a href="#features"
+            <a href="#demo"
               className="w-full sm:w-auto border-2 border-brand-navy text-brand-navy font-semibold px-8 py-4 rounded-2xl text-lg hover:bg-brand-navy hover:text-white transition-all">
-              Voir les fonctionnalités
+              ▶ Voir la démo (4 min)
             </a>
           </div>
 
@@ -210,6 +212,34 @@ export default function LandingPage() {
                 <div className="text-xs text-gray-400 mt-1">{s.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── DÉMO VIDÉO ─────────────────────────────────────────── */}
+      <section id="demo" className="pb-20 px-4 sm:px-6 bg-white scroll-mt-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-brand-navy mb-3">Vision R+ en 4 minutes</h2>
+            <p className="text-gray-500">De la création du compte au bilan : voyez le logiciel en action, sans rien installer.</p>
+          </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl border border-gray-100 bg-brand-navy aspect-video">
+            <video
+              className="w-full h-full"
+              src="/demo/visionrplus-demo.mp4"
+              poster="/demo/visionrplus-demo-apercu.jpg"
+              controls
+              playsInline
+              preload="none"
+            >
+              Votre navigateur ne peut pas lire cette vidéo.
+            </video>
+          </div>
+          <div className="text-center mt-8">
+            <Link href="/auth/register"
+              className="inline-block bg-brand-orange hover:bg-brand-orange-400 text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all hover:shadow-lg hover:-translate-y-0.5">
+              Essayer gratuitement
+            </Link>
           </div>
         </div>
       </section>
