@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { useForm }  from 'react-hook-form';
-import { Save, Loader2, Globe2, Bell, Shield, User, Lock } from 'lucide-react';
+import { Save, Loader2, Globe2, Bell, Shield, User, Lock, UserX, AlertTriangle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import Header  from '@/components/layout/Header';
 import { Card, CardHeader, Badge } from '@/components/ui';
-import { companiesApi, extractApiError } from '@/lib/api/client';
+import { companiesApi, authApi, journalApi, analyticsApi, extractApiError } from '@/lib/api/client';
 import { useCompanyStore, useAuthStore }  from '@/lib/store';
 import { cn, SYSTEM_LABELS, PLAN_LABELS } from '@/lib/utils';
 import type { AccountingSystem, Currency } from '@/types';
@@ -15,6 +15,7 @@ const SECTIONS = [
   { id: 'profile',  label: 'Profil utilisateur',  icon: User },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Sécurité',            icon: Shield },
+  { id: 'account',  label: 'Compte et données',   icon: UserX },
 ];
 
 const CURRENCIES: { value: Currency; label: string }[] = [
@@ -63,6 +64,7 @@ export default function SettingsPage() {
               {activeSection === 'profile'  && <ProfileSettings user={user} />}
               {activeSection === 'notifications' && <NotificationsSettings />}
               {activeSection === 'security' && <SecuritySettings />}
+              {activeSection === 'account'  && <AccountClosure />}
             </div>
           </div>
         </div>
@@ -359,5 +361,104 @@ function SecuritySettings() {
         </div>
       </div>
     </Card>
+  );
+}
+
+// ── Section : Compte et données (export + fermeture) ──────────
+//  Conforme aux CGU art. 8 : fermeture immédiate, données conservées
+//  90 jours (réactivation / export sur demande), puis suppression.
+function AccountClosure() {
+  const { activeCompany, activeFiscalYear } = useCompanyStore();
+  const { logout } = useAuthStore();
+  const [password, setPassword]   = useState('');
+  const [confirm, setConfirm]     = useState('');
+  const [closing, setClosing]     = useState(false);
+  const [exporting, setExporting] = useState<'' | 'csv' | 'fec'>('');
+
+  const download = async (kind: 'csv' | 'fec') => {
+    if (!activeCompany || !activeFiscalYear) { toast.error('Sélectionnez une entreprise et un exercice'); return; }
+    setExporting(kind);
+    try {
+      const blob = kind === 'csv'
+        ? await journalApi.exportCsv(activeCompany.id, activeFiscalYear.id)
+        : await analyticsApi.exportFec(activeCompany.id, activeFiscalYear.id);
+      const url = URL.createObjectURL(blob as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeCompany.name.replace(/[^\w-]+/g, '_')}_${activeFiscalYear.label.replace(/\s+/g, '_')}.${kind === 'csv' ? 'csv' : 'txt'}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(extractApiError(e));
+    } finally {
+      setExporting('');
+    }
+  };
+
+  const close = async () => {
+    setClosing(true);
+    try {
+      const r = await authApi.closeAccount(password, confirm);
+      const d = new Date(r.deletion_on).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+      toast.success(`Compte fermé. Vos données seront supprimées le ${d}. Un email de confirmation vous a été envoyé.`, { duration: 8000 });
+      setTimeout(logout, 2500);
+    } catch (e) {
+      toast.error(extractApiError(e));
+      setClosing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardHeader title="Exporter mes données" subtitle="Avant de partir, gardez une copie de votre comptabilité" />
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-slate-500">
+            Export de l&apos;exercice sélectionné ({activeCompany?.name ?? 'aucune entreprise'} — {activeFiscalYear?.label ?? 'aucun exercice'}).
+            Répétez pour chaque entreprise et chaque exercice. Vous restez tenu de conserver vos pièces comptables 10 ans.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => download('csv')} disabled={!!exporting} className="btn-secondary">
+              {exporting === 'csv' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Écritures (CSV / Excel)
+            </button>
+            <button onClick={() => download('fec')} disabled={!!exporting} className="btn-secondary">
+              {exporting === 'fec' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Fichier des écritures comptables (FEC)
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="border-red-200">
+        <CardHeader title="Supprimer mon compte" subtitle="Fermeture du compte Vision R+" />
+        <div className="p-5 space-y-4">
+          <div className="flex gap-3 bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-900">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-red-500" />
+            <ul className="space-y-1.5 list-disc pl-4">
+              <li>Votre accès est <b>bloqué immédiatement</b> et votre abonnement est <b>arrêté</b> (aucun prélèvement futur, pas de remboursement de la période en cours).</li>
+              <li>Vos données sont <b>conservées 90 jours</b> : pendant ce délai, écrivez à contact@visionrplus.com pour réactiver le compte ou recevoir vos données.</li>
+              <li>Après 90 jours, <b>vos entreprises et leurs données sont définitivement supprimées</b> et votre compte est anonymisé. Cette étape est irréversible.</li>
+              <li>Les écritures saisies dans les entreprises <b>d&apos;autres titulaires</b> (si vous y étiez invité) leur restent, sans vos informations personnelles.</li>
+            </ul>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label" htmlFor="close-pwd">Mot de passe</label>
+              <input id="close-pwd" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+            </div>
+            <div>
+              <label className="label" htmlFor="close-confirm">Tapez SUPPRIMER pour confirmer</label>
+              <input id="close-confirm" className="input" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="SUPPRIMER" />
+            </div>
+          </div>
+          <button
+            onClick={close}
+            disabled={closing || !password || confirm.trim().toUpperCase() !== 'SUPPRIMER'}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white font-medium text-sm hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {closing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserX className="w-4 h-4" />} Fermer définitivement mon compte
+          </button>
+        </div>
+      </Card>
+    </div>
   );
 }

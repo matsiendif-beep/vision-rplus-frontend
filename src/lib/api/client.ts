@@ -66,6 +66,10 @@ export const authApi = {
   acceptTerms: (version: string) =>
     api.post<{ accepted_version: string }>('/auth/accept-terms', { version }).then((r) => r.data),
 
+  /** Fermeture du compte (données conservées 90 jours puis supprimées) */
+  closeAccount: (password: string, confirmation: string) =>
+    api.post<{ closed_at: string; deletion_on: string }>('/auth/close-account', { password, confirmation }).then((r) => r.data),
+
   changePassword: (currentPassword: string, newPassword: string) =>
     api.patch<{ message: string }>('/auth/change-password', {
       current_password: currentPassword,
